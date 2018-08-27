@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'django_filters',
     'transfer_app.apps.TransferAppConfig',
@@ -134,25 +135,37 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
 }
 
+
+####################
+# Configuration for Sites framework:
+SITE_ID = 1
+
+
+# some identifiers for consistent reference:
+GOOGLE = 'google'
+AWS = 'aws'
+GOOGLE_DRIVE = 'google_drive'
+DROPBOX = 'dropbox'
+
+####################
+
+# Read the general configuration file, which will load the settings appropriate for the environment
+import cccb_transfers.utils as utils
+
+CONFIG_DIR = os.path.join(BASE_DIR, 'config')
+CONFIG_PARAMS = utils.read_config(os.path.join(CONFIG_DIR, 'general.cfg'))
+
+
 ###################
 # Configuration for upload providers and compute environments:
 
-GOOGLE = 'google'
-AWS = 'aws'
-
 UPLOADER_CONFIG = {
-    CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'uploaders.cfg')
-    UPLOAD_SOURCES = {
-        'DROPBOX': 'dropbox',
-        'GOOGLE_DRIVE': 'google_drive'
-    }
+    'CONFIG_PATH' : os.path.join(CONFIG_DIR, 'uploaders.cfg'),
+
+    # for each item in the following dictionary, there needs to be a section 
+    # header in the config file located at UPLOADER_CONFIG.CONFIG_PATH
+    'UPLOAD_SOURCES' : [
+        DROPBOX,
+        GOOGLE_DRIVE
+    ]
 }
-
-
-# can we set this in a config file???
-COMPUTE_ENVIRONMENT = GOOGLE
-
-
-
-TOKEN = 'abcd1234abcd1234'
-ENC_KEY = 'a1b2c3d4'

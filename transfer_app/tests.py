@@ -1051,8 +1051,8 @@ class CompletionMarkingTestCase(TestCase):
         transfers = Transfer.objects.filter(coordinator = tc)
 
         d = {}
-        token = settings.TOKEN
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        token = settings.CONFIG_PARAMS['token']
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
@@ -1081,8 +1081,8 @@ class CompletionMarkingTestCase(TestCase):
         tc = TransferCoordinator.objects.get(pk=1)
         transfers = Transfer.objects.filter(coordinator = tc)
 
-        token = settings.TOKEN
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        token = settings.CONFIG_PARAMS['token']
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
 
@@ -1123,7 +1123,7 @@ class CompletionMarkingTestCase(TestCase):
         transfers = Transfer.objects.filter(coordinator = tc)
 
         bad_token = 'xxxxYYYY'
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(bad_token)
         bad_b64_str = base64.encodestring(enc_token)
 
@@ -1147,8 +1147,8 @@ class CompletionMarkingTestCase(TestCase):
         transfers = Transfer.objects.filter(coordinator = tc)
 
         d = {}
-        token = settings.TOKEN
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        token = settings.CONFIG_PARAMS['token']
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
@@ -1170,8 +1170,8 @@ class CompletionMarkingTestCase(TestCase):
         transfers = Transfer.objects.filter(coordinator = tc)
 
         d = {}
-        token = settings.TOKEN
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        token = settings.CONFIG_PARAMS['token']
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
@@ -1193,8 +1193,8 @@ class CompletionMarkingTestCase(TestCase):
         transfers = Transfer.objects.filter(coordinator = tc)
 
         d = {}
-        token = settings.TOKEN
-        obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+        token = settings.CONFIG_PARAMS['token']
+        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
@@ -1208,434 +1208,8 @@ class CompletionMarkingTestCase(TestCase):
         self.assertEqual(response.status_code, 400)
 
 
-'''
-Tests for upload transfer:
-  - Resources created, Transfers created, TransferCoordinator created, mock transfer method called
-'''
-class UploadInitTestCase(TestCase):
 
-    def setUp(self):
-        '''
-        In a download, users are transferring away from our systems, downloading it to another storage 
-        The Resource instances already exist.
-        '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
 
-    def test_upload_init_creates_objects(self):
-        '''
-        This tests the creation of the proper database items given a valid request
-        Here, only the 'source' of each upload is placed in the post payload
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_resources = Resource.objects.user_resources(reguser)
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_resources), 0)
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        # a list of dicts to be used in the request
-        num_sources = 5
-        upload_sources = [{'source':'dropbox', 'path': 'upload_source_%d' % x} for x in range(num_sources)]
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = upload_sources
-        response = client.post(url, d, format='json')
-        data = response.data
-
-        # check that the proper things were created:
-        new_resources = Resource.objects.user_resources(reguser)
-        new_transfers = Transfer.objects.user_transfers(reguser)
-        new_tc = TransferCoordinator.objects.all()         
-        self.assertEqual(len(new_transfers), num_sources)
-        self.assertEqual(len(new_transfers), num_sources)
-        self.assertEqual(len(new_tc), 1)
-        
-        self.assertTrue(all([not x.completed for x in new_transfers])) # no transfer is complete
-        self.assertFalse(new_tc[0].completed) # the transfer coord is also not completed
-
-    def test_upload_init_creates_objects_given_owners(self):
-        '''
-        This tests the creation of the proper database items given a valid request
-        Here, both the 'source' and correct owner PK are given as payload
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_resources = Resource.objects.user_resources(reguser)
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_resources), 0)
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        # a list of dicts to be used in the request
-        num_sources = 5
-        upload_sources = [{'source':'dropbox', 'path': 'upload_source_%d' % x, 'owner':reguser.pk} for x in range(num_sources)]
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = upload_sources
-        response = client.post(url, d, format='json')
-        data = response.data
-
-        # check that the proper things were created:
-        new_resources = Resource.objects.user_resources(reguser)
-        new_transfers = Transfer.objects.user_transfers(reguser)
-        new_tc = TransferCoordinator.objects.all()         
-        self.assertEqual(len(new_transfers), num_sources)
-        self.assertEqual(len(new_transfers), num_sources)
-        self.assertEqual(len(new_tc), 1)
-        
-        self.assertTrue(all([not x.completed for x in new_transfers])) # no transfer is complete
-        self.assertFalse(new_tc[0].completed) # the transfer coord is also not completed
-
-    def test_reject_upload_for_bad_owner_pk(self):
-        '''
-        This tests the creation of the proper database items given a valid request
-        Here, the 'source' parts of the payload are fine, but the PK is for someone else
-        (whether intentional or not)
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-        otheruser = User.objects.get(username='otheruser')
-
-        upload_sources = [{'source':'dropbox', 'path': 'upload_source_0', 'owner':reguser.pk}, \
-                         {'source':'dropbox', 'path': 'upload_source_1', 'owner':otheruser.pk}]
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = upload_sources
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_single_upload(self):
-        '''
-        This tests the creation of the proper database items given a valid request
-        Here, we try a single upload
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_resources = Resource.objects.user_resources(reguser)
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_resources), 0)
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        # a list of dicts to be used in the request
-        upload_source = {'source':'dropbox', 'path': 'upload_source_0'}
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = upload_source
-        response = client.post(url, d, format='json')
-        data = response.data
-
-        # check that the proper things were created:
-        new_resources = Resource.objects.user_resources(reguser)
-        new_transfers = Transfer.objects.user_transfers(reguser)
-        new_tc = TransferCoordinator.objects.all()         
-        self.assertEqual(len(new_transfers), 1)
-        self.assertEqual(len(new_transfers), 1)
-        self.assertEqual(len(new_tc), 1)
-        
-        self.assertTrue(all([not x.completed for x in new_transfers])) # no transfer is complete
-        self.assertFalse(new_tc[0].completed) # the transfer coord is also not completed
-
-    def test_reject_malformed_upload_request(self):
-        '''
-        This tests that improperly formatted requests are rejected
-        Here, the only required arg ('source') is misspelled to generate the error
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # a list of dicts to be used in the request
-        upload_source = {'source':'dropbox', 'pathS': 'upload_source_0'} # note the incorrect key here
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = upload_source
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_reject_malformed_upload_request2(self):
-        '''
-        This tests that improperly formatted requests are rejected
-        Here, the required "transfers" key is incorrectly spelled
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # a list of dicts to be used in the request
-        upload_source = {'source':'dropbox', 'path': 'upload_source_0'}
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transferS'] = upload_source # note the typo in "transfers"
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_reject_malformed_upload_request3(self):
-        '''
-        This tests that improperly formatted requests are rejected
-        Here, the 'transfers' key has only a string
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # a list of dicts to be used in the request
-        url = reverse('upload-transfer-initiation')
-        d = {}
-        d['transfers'] = 'some junk'
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-'''
-Tests for download transfer (Resources already exist in this case)
-  - Transfers created, TransferCoordinator created
-  - reject malformed request (missing data in post payload)
-  - all bad resources (invalid PKs): reject request
-  - some good, some bad PKs for Resource: reject request
-  - reject transfer of Resources that are valid, but not owned by requester (unless admin)
-  - If admin, can send anyone's Resources (if all valid)
-'''
-class DownloadInitTestCase(TestCase):
-
-    def setUp(self):
-        '''
-        In a download, users are transferring away from our systems, downloading it to another storage 
-        The Resource instances already exist.
-        '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
-
-        # create a couple of resources owned by the regular user:
-        r1 = Resource.objects.create(
-            source='google_storage',
-            path='gs://a/b/reg_owned1.txt',
-            size=500,
-            owner=self.regular_user,
-        )
-        r2 = Resource.objects.create(
-            source='google_storage',
-            path='gs://a/b/reg_owned2.txt',
-            size=500,
-            owner=self.regular_user,
-        )
-
-        r3 = Resource.objects.create(
-            source='google_storage',
-            path='gs://a/b/other_owned.txt',
-            size=500,
-            owner=self.other_user,
-        )
-
-    def test_download_init_makes_transfer_objects(self):
-        '''
-        this tests the creation of the necessary database
-        items for when a regular user constructs a proper
-        request for download
-        '''
-
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        resources = Resource.objects.filter(owner=reguser)
-        resource_pks = [r.pk for r in resources]
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        data = response.data
-
-        # check that the proper things were created:
-        new_transfers = Transfer.objects.user_transfers(reguser)
-        new_tc = TransferCoordinator.objects.all()         
-        self.assertEqual(len(new_transfers), 2)
-        self.assertEqual(len(new_tc), 1)
-        
-        self.assertTrue(all([not x.completed for x in new_transfers])) # neither transfer is complete
-        self.assertFalse(new_tc[0].completed) # the transfer coord is also not completed
-
-    def test_reject_download_init_case1(self):
-        '''
-        A request could conceivably contain incorrect information--
-        here we give all bad pk's for the Resources.
-        check that we reject that and issue 400
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        resources = Resource.objects.filter(owner=reguser)
-        resource_pks = [r.pk for r in resources]
-        bad_resource_pks = [x for x in range(10) if x not in resource_pks]
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = bad_resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_reject_download_init_case2(self):
-        '''
-        A request could conceivably contain incorrect information--
-        Here we give some valid and some invalid PKs for Resource objects
-        check that we reject that and issue 400
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        resources = Resource.objects.filter(owner=reguser)
-        resource_pks = [r.pk for r in resources]
-        bad_resource_pks = resource_pks + [max(resource_pks) + 1,]
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = bad_resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_reject_download_init_case3(self):
-        '''
-        A request could conceivably contain incorrect information--
-        Here we give some valid PKs and attempt to transfer some other user's Resource
-        check that we reject that and issue 400
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-        otheruser = User.objects.get(username='otheruser')
-
-        resources = Resource.objects.filter(owner=reguser)
-        others_resources = Resource.objects.filter(owner=otheruser)
-        resource_pks = [r.pk for r in resources]
-        other_resource_pks = [r.pk for r in others_resources]
-        bad_resource_pks = resource_pks + other_resource_pks
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = bad_resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_reject_download_init_case4(self):
-        '''
-        A request could conceivably contain incorrect information--
-        Here we give some a request that is missing the resource_pks
-        check that we reject that and issue 400
-        '''
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-        # establish the admin client:
-        client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        resources = Resource.objects.filter(owner=reguser)
-        resource_pks = [r.pk for r in resources]
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        data = response.data
-
-    def test_admin_can_transfer_anyones_resources(self):
-        '''
-        this tests the creation of the necessary database
-        items for when a admin user constructs a proper
-        request for download
-        '''
-
-        client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
-
-        reguser = User.objects.get(username='reguser')
-
-        # we will eventually create new Transfer/TransferCoordinator objects
-        # This ensures we start from an empty state:
-        existing_transfers = Transfer.objects.user_transfers(reguser)
-        existing_tc = TransferCoordinator.objects.all()
-        self.assertEqual(len(existing_transfers), 0)
-        self.assertEqual(len(existing_tc), 0)
-
-        # get Resource instances owned by the regular user.  
-        resources = Resource.objects.filter(owner=reguser)
-        resource_pks = [r.pk for r in resources]
-
-        url = reverse('download-transfer-initiation')
-        d = {}
-        d['resource_pks'] = resource_pks
-        d['destination'] = 'client dropbox'
-        response = client.post(url, d, format='json')
-        data = response.data
-
-        # check that the proper things were created:
-        new_transfers = Transfer.objects.user_transfers(reguser)
-        new_tc = TransferCoordinator.objects.all()         
-        self.assertEqual(len(new_transfers), 2)
-        self.assertEqual(len(new_tc), 1)
-        
-        self.assertTrue(all([not x.completed for x in new_transfers])) # neither transfer is complete
-        self.assertFalse(new_tc[0].completed) # the transfer coord is also not completed
 
 
 

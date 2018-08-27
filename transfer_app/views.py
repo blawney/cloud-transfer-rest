@@ -291,8 +291,8 @@ class TransferComplete(APIView):
         if 'token' in data:
             b64_enc_token = data['token']
             enc_token = base64.decodestring(b64_enc_token.encode('ascii'))
-            expected_token = settings.TOKEN
-            obj=DES.new(settings.ENC_KEY, DES.MODE_ECB)
+            expected_token = settings.CONFIG_PARAMS['token'] 
+            obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
             decrypted_token = obj.decrypt(enc_token)
             if decrypted_token == expected_token.encode('ascii'):
 
@@ -403,18 +403,18 @@ class InitUpload(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         data = request.data
         try:
-            upload_source = data['upload_source']
+            upload_source = data['upload_source'] # (dropbox, drive, etc)
             upload_info = data['upload_info']
         except KeyError as ex:
             raise exceptions.RequestError('The request JSON body did not contain the required data (%s).' % ex)
 
+        # Here, we first do a spot-check on the data that was passed, BEFORE we invoke any asynchronous methods.
+        # We prepare/massage the necessary data for the upload here, and then pass a simple dictionary to the asynchronous
+        # method call.  We do this since it is easiest to pass a simple native dictionary to celery. 
+
+        user_pk = request.user.pk
+
         try:
-            # Here, we first do a spot-check on the data that was passed, BEFORE we invoke any asynchronous methods.
-            # We prepare/massage the necessary data for the upload here, and then pass a simple dictionary to the asynchronous
-            # method call.  We do this since it is easiest to pass a simple native dictionary to celery. 
-
-            user_pk = request.user.pk
-
             # Depending on which upload method was requested (and which compute environment we are in), grab the proper class:
             uploader_cls = _uploaders.get_uploader(upload_source)
 
@@ -424,8 +424,13 @@ class InitUpload(generics.CreateAPIView):
             # call async method:
             tasks.upload.delay(upload_info, upload_source)
 
+        except exceptions.ExceptionWithMessage as ex:
+            raise exceptions.RequestError(ex.message)
+
         except Exception as ex:
-            return exception_handler(ex, None)
+            print('CAUGHT EX!')
+            print(ex)
+            response = exception_handler(ex, None)
 
         return Response({'message': 'thanks'})
 

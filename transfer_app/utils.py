@@ -1,12 +1,13 @@
 import configparser
 
 from django.conf import settings
+from django.http import Http404
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 import transfer_app.launchers as _launchers
 
 
-def load_config(config_filepath, config_key=None):
+def load_config(config_filepath, config_keys=None):
     '''
     config_filepath is the path to a config/ini file
     config_key is the name of a section in that file
@@ -14,13 +15,16 @@ def load_config(config_filepath, config_key=None):
     '''
     config = configparser.ConfigParser()
     config.read(config_filepath)
-    if config_key in config:
-        d = {}
-        for key in config[config_key]:
-            d[key] =  config[config_key][key]
-        return d
-    else:
-        raise configparser.NoSectionError()
+    d = {}
+    for config_key in config_keys:
+        if config_key in config:
+            d1 = {}
+            for key in config[config_key]:
+                d1[key] =  config[config_key][key]
+            d.update(d1)
+        else:
+            raise configparser.NoSectionError()
+    return d
 
 
 def post_completion(transfer_coordinator):
