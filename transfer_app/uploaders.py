@@ -60,7 +60,6 @@ class Uploader(object):
         for item in upload_data:
             cls._validate_ownership(item, requesting_user)
             cls._check_keys(item)
-            #cls._add_source(item)
 
         return upload_data
 
@@ -143,7 +142,7 @@ class DriveUploader(Uploader):
     '''
     
     source = settings.GOOGLE_DRIVE
-    required_keys = ['file_id', 'token',]
+    required_keys = ['file_id', 'token', 'name']
 
     @classmethod
     def check_format(cls, upload_data, uploader_pk):
@@ -210,7 +209,6 @@ class EnvironmentSpecificUploader(object):
 
     def upload(self):
 
-        # creates the necessary database objects and returns a TransferCoordinator:
         transfer_coordinator = self.uploader._transfer_setup()
         self.config_and_start_uploads(transfer_coordinator)     
 
@@ -393,7 +391,71 @@ class GoogleDropboxUploader(GoogleEnvironmentUploader):
 
 class GoogleDriveUploader(GoogleEnvironmentUploader):
     uploader_cls = DriveUploader
-    config_key = 'drive_in_google'
+    config_keys = ['drive_in_google',]
+
+    def __init__(self, upload_data):
+        self.config_key_list.extend(GoogleDriveUploader.config_keys)
+        super().__init__(upload_data)
+
+    def config_and_start_uploads(self, transfer_coordinator):
+
+        # use the parent class to setup the other database components
+        super().config_and_start_uploads(transfer_coordinator)
+
+        custom_config = self.config_params.copy()
+        disk_size_factor = float(custom_config['disk_size_factor'])
+        min_disk_size = int(float(custom_config['min_disk_size']))
+
+        # construct a callback so the worker can communicate back to the application server:
+        callback_url = reverse('transfer-complete')
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+
+        # need to specify the full path to the startup script
+        startup_script_url = os.path.join(settings.CONFIG_PARAMS['storage_base'], custom_config['startup_script_path'])
+
+        for i, item in enumerate(self.uploader.upload_data):
+
+            config = self.base_config.copy()
+
+            instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
+                datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
+                i                
+            )
+            config['name'] =  instance_name
+
+            config['machineType'] = custom_config['machine_type']
+
+            # approx size in Gb so we can size the VM appropriately
+            size_in_gb = item['size_in_bytes']/1e9
+            target_disk_size = int(disk_size_factor*size_in_gb)
+            if target_disk_size < min_disk_size:
+                target_disk_size = min_disk_size
+            disk_config = {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams':{
+                    'sourceImage': custom_config['source_disk_image'],
+                    'diskSizeGb': target_disk_size
+                }
+            }
+            config['disks'].append(disk_config)
+
+            # now do the other metadata commands
+            metadata_list = []
+            metadata_list.append({'key':'startup-script-url', 'value':startup_script_url})
+            metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
+            metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
+            metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
+            metadata_list.append({'key':'drive_file_id', 'value':item['path']}) # the file ID provided by google
+            metadata_list.append({'key':'drive_token', 'value':item['token']}) # the oauth2 access token provided by google
+            metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
+            metadata_list.append({'key':'google_project', 'value':settings.CONFIG_PARAMS['google_project_id']})
+            metadata_list.append({'key': 'destination', 'value': item['destination']})
+
+            config['metadata']['items'] = metadata_list
+            self.launcher.go(config)
 
 
 class AWSEnvironmentUploader(EnvironmentSpecificUploader):
