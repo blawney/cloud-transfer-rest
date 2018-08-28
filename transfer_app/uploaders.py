@@ -9,6 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.contrib.sites.models import Site
 
+from transfer_app.base import GoogleBase, AWSBase
 import transfer_app.utils as utils
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 import transfer_app.serializers as serializers
@@ -213,39 +214,7 @@ class EnvironmentSpecificUploader(object):
         self.config_and_start_uploads(transfer_coordinator)     
 
 
-class GoogleEnvironmentUploader(EnvironmentSpecificUploader):
-    launcher_cls = GoogleLauncher
-    config_keys = ['google',]
-
-    # A dictionary used to configure the machine at startup.
-    # Parameters specific to each job will be added for each upload task
-    # This dictionary is consistent regardless of the upload file source
-    base_config = {
-
-        # Specify the boot disk and the image to use as a source.
-        'disks': [],
-
-        # Specify a network interface with NAT to access the public
-        # internet.
-        'networkInterfaces': [{
-            'network': 'global/networks/default',
-            'accessConfigs': [
-                {'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}
-            ]
-        }],
-
-        # Allow the instance to access cloud storage and logging.
-        'serviceAccounts': [{
-            'email': 'default',
-            'scopes': [
-                'https://www.googleapis.com/auth/compute',
-                'https://www.googleapis.com/auth/devstorage.full_control',
-                'https://www.googleapis.com/auth/logging.write'
-            ]
-        }],
-
-        'metadata': {}
-    }
+class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
 
     @classmethod
     def check_format(cls, upload_info, uploader_pk):
@@ -287,7 +256,7 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader):
         return upload_info
 
     def __init__(self, upload_data):
-        self.config_key_list.extend(GoogleEnvironmentUploader.config_keys)
+        self.config_key_list.extend(GoogleBase.config_keys)
         super().__init__(upload_data)
 
     def config_and_start_uploads(self, transfer_coordinator):    
