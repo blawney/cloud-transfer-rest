@@ -601,6 +601,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertTrue(len(all_transfers) == 2)
         self.assertTrue(len(all_resources) == 2)
         self.assertTrue(len(all_tc) == 1)
+        self.assertTrue(all([x.source == settings.GOOGLE_DRIVE for x in all_resources]))
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertFalse(all_tc[0].completed) # the transfer coord is also not completed
 

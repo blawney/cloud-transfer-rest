@@ -75,7 +75,34 @@ class Uploader(object):
         '''
         tc = TransferCoordinator()
         tc.save()
-        return tc
+
+        for item in self.upload_data:
+            owner = get_user_model().objects.get(pk=item['owner'])
+            try:
+                filesize_in_bytes = item['size_in_bytes']
+            except KeyError as e:
+                filesize_in_bytes =  0
+                item['size_in_bytes'] = 0
+
+            r = Resource(
+                source = self.source,
+                path = item['path'],
+                owner = owner,
+                size = filesize_in_bytes
+            )
+            r.save()
+
+            t = Transfer(
+                 download=False,
+                 resource=r,
+                 destination=item['destination'],
+                 coordinator=tc
+            )
+            t.save()
+
+            # finally add the transfer primary key to the dictionary so we will
+            # be able to track the transfers
+            item['transfer_pk'] = t.pk
 
 
 class DropboxUploader(Uploader):
@@ -210,8 +237,8 @@ class EnvironmentSpecificUploader(object):
 
     def upload(self):
 
-        transfer_coordinator = self.uploader._transfer_setup()
-        self.config_and_start_uploads(transfer_coordinator)     
+        self.uploader._transfer_setup()
+        self.config_and_start_uploads()     
 
 
 class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
@@ -259,35 +286,9 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
         self.config_key_list.extend(GoogleBase.config_keys)
         super().__init__(upload_data)
 
-    def config_and_start_uploads(self, transfer_coordinator):    
-
-        for item in self.uploader.upload_data:
-            owner = get_user_model().objects.get(pk=item['owner'])
-            try:
-                filesize_in_bytes = item['size_in_bytes']
-            except KeyError as e:
-                filesize_in_bytes =  0
-                item['size_in_bytes'] = 0
-
-            r = Resource(
-                source = self.uploader.source,
-                path = item['path'],
-                owner = owner,
-                size = filesize_in_bytes
-            )
-            r.save()
-
-            t = Transfer(
-                 download=False,
-                 resource=r,
-                 destination=item['destination'],
-                 coordinator=transfer_coordinator
-            )
-            t.save()
-
-            # finally add the transfer primary key to the dictionary so we will
-            # be able to track the transfers
-            item['transfer_pk'] = t.pk        
+    def config_and_start_uploads(self):    
+        pass
+        
 
 
 class GoogleDropboxUploader(GoogleEnvironmentUploader):
@@ -298,10 +299,10 @@ class GoogleDropboxUploader(GoogleEnvironmentUploader):
         self.config_key_list.extend(GoogleDropboxUploader.config_keys)
         super().__init__(upload_data)
 
-    def config_and_start_uploads(self, transfer_coordinator):
+    def config_and_start_uploads(self):
 
         # use the parent class to setup the other database components
-        super().config_and_start_uploads(transfer_coordinator)
+        super().config_and_start_uploads()
 
         custom_config = self.config_params.copy()
         disk_size_factor = float(custom_config['disk_size_factor'])
@@ -366,10 +367,10 @@ class GoogleDriveUploader(GoogleEnvironmentUploader):
         self.config_key_list.extend(GoogleDriveUploader.config_keys)
         super().__init__(upload_data)
 
-    def config_and_start_uploads(self, transfer_coordinator):
+    def config_and_start_uploads(self):
 
         # use the parent class to setup the other database components
-        super().config_and_start_uploads(transfer_coordinator)
+        super().config_and_start_uploads()
 
         custom_config = self.config_params.copy()
         disk_size_factor = float(custom_config['disk_size_factor'])
