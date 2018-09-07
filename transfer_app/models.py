@@ -15,10 +15,11 @@ class Resource(models.Model):
     '''
     This model respresents a general resource/file.  See individual fields for interpretation
     '''
-    # the location (e.g. URL) where the Resource is 
+    # the location (e.g. string like 'google') where the Resource is 
     source = models.CharField(max_length=100, null=False)
 
-    # the location (e.g. URL) where the Resource lives, relative to source 
+    # the location (e.g. URL) where the Resource lives, relative to source
+    # e.g. gs://bucket/dir/object.txt for google buckets
     path = models.CharField(max_length=1000, null=False)
     
     # the file size in bytes.  For display, this will be converted
@@ -92,7 +93,8 @@ class TransferObjectManager(models.Manager):
      This class provides a nice way to filter Transfer objects for a particular user
      '''
      def user_transfers(self, user):
-         return super(TransferObjectManager, self).get_queryset().filter(resource__owner=user)
+         #return super(TransferObjectManager, self).get_queryset().filter(resource__owner=user)
+         return super(TransferObjectManager, self).get_queryset().filter(originator=user)
 
      #def get_coordinator(self, tc):
      #    return super(TransferObjectManager, self).get_queryset().filter(coordinator__pk=tc.pk)
@@ -132,6 +134,11 @@ class Transfer(models.Model):
 
     # each Transfer is "managed" by a TransferCoordinator, which monitors >=1 Transfers
     coordinator = models.ForeignKey(TransferCoordinator, on_delete=models.CASCADE)
+
+    # other users (such as admins) can request transfers on behalf of regular users
+    # this allows us to track who started the transfer, while the resource may only be
+    # owned by that regular user
+    originator = models.ForeignKey(User, on_delete=models.CASCADE)
 
     objects = TransferObjectManager()
 

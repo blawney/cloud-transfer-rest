@@ -35,4 +35,5 @@ class GoogleBase(object):
     }
 
 class AWSBase(object):
-    pass
+    launcher_cls = AWSLauncher
+    config_keys = ['aws',]

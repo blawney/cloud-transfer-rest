@@ -63,13 +63,16 @@ def create_data(testcase_obj):
 
     tc3 = TransferCoordinator.objects.create()
 
+    tc4 = TransferCoordinator.objects.create()
+
     # create Transfer instances for the Resources above
     # An admin-owned download transfer
     t1 = Transfer.objects.create(
         download=True,
         resource = r1,
         destination = 'dropbox',
-        coordinator = tc1
+        coordinator = tc1,
+        originator = testcase_obj.admin_user
     )
 
     # Create two downloads and one upload owned by a regular user:
@@ -77,20 +80,33 @@ def create_data(testcase_obj):
         download=True,
         resource = r3,
         destination = 'dropbox',
-        coordinator = tc2
+        coordinator = tc2,
+        originator = testcase_obj.regular_user
     )
     t3 = Transfer.objects.create(
         download=True,
         resource = r4,
         destination = 'dropbox',
-        coordinator = tc2
+        coordinator = tc2,
+        originator = testcase_obj.regular_user
     )
 
     t4 = Transfer.objects.create(
         download=False,
         resource = r5,
         destination = 'our system',
-        coordinator = tc3
+        coordinator = tc3,
+        originator = testcase_obj.regular_user
+    )
+
+    # now create a Transfer that was originated by an admin, but the Resource is owned by
+    # a regular user
+    t5 = Transfer.objects.create(
+        download=False,
+        resource = r5,
+        destination = 'our system',
+        coordinator = tc4,
+        originator = testcase_obj.admin_user
     )
 
 
@@ -389,15 +405,23 @@ class TransferListTestCase(TestCase):
         create_data(self)
 
     def test_list_all_transfers_for_admin(self):
+        '''
+        This tests that the admin can list all existing Transfers
+        ''' 
         t = Transfer.objects.all()
         admin_client = APIClient()
         admin_client.login(username='adminuser', password='abcd123!') 
         url = reverse('transfer-list')
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4) 
+        self.assertEqual(len(response.data), 5) 
 
     def test_nonadmin_list_returns_only_owned_transfers(self):
+        '''
+        This tests that a regular user can only list the Transfer objects they originated.
+        Note that this does NOT list the Transfers that happened for Resources they owned.
+        
+        ''' 
         reg_user = User.objects.get(username='reguser')
         user_transfers = Transfer.objects.user_transfers(reg_user)
 
@@ -409,6 +433,9 @@ class TransferListTestCase(TestCase):
         self.assertEqual(len(response.data), 3)
 
     def test_list_download_transfers_for_admin(self):
+        '''
+        This tests that the admin can list all the downloads, regardless of user
+        '''
         t = Transfer.objects.all()
         admin_client = APIClient()
         admin_client.login(username='adminuser', password='abcd123!') 
@@ -419,6 +446,9 @@ class TransferListTestCase(TestCase):
         self.assertEqual(len(response.data), 3)
 
     def test_list_upload_transfers_for_admin(self):
+        '''
+        This tests that the admin can list all the uploads, regardless of user
+        '''
         t = Transfer.objects.all()
         admin_client = APIClient()
         admin_client.login(username='adminuser', password='abcd123!') 
@@ -426,9 +456,12 @@ class TransferListTestCase(TestCase):
         url = '%s?download=false' % url
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data), 2)
 
     def test_list_download_transfers_for_reguser(self):
+        '''
+        This tests that the regular user can list all their downloads
+        '''
         t = Transfer.objects.all()
         reg_client = APIClient()
         reg_client.login(username='reguser', password='abcd123!') 
@@ -439,6 +472,12 @@ class TransferListTestCase(TestCase):
         self.assertEqual(len(response.data), 2)
 
     def test_list_upload_transfers_for_reguser(self):
+        '''
+        This tests that the regular user can list all their uploads
+        Note that there were multiple uploads of this user's files.  
+        However, only one of those was originated by this regular user; the
+        other was transferred by an admin
+        '''
         t = Transfer.objects.all()
         reg_client = APIClient()
         reg_client.login(username='reguser', password='abcd123!') 
@@ -802,7 +841,7 @@ class TransferCoordinatorListTestCase(TestCase):
         url = reverse('batch-list')
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3) 
+        self.assertEqual(len(response.data), 4) 
 
     def test_nonadmin_list_returns_only_owned_transfers(self):
         reg_user = User.objects.get(username='reguser')
@@ -1032,13 +1071,15 @@ class CompletionMarkingTestCase(TestCase):
             download=True,
             resource = r1,
             destination = 'dropbox',
-            coordinator = tc1
+            coordinator = tc1,
+            originator = self.regular_user
         )
         t2 = Transfer.objects.create(
             download=True,
             resource = r2,
             destination = 'dropbox',
-            coordinator = tc1
+            coordinator = tc1,
+            originator = self.regular_user
         )
 
     def test_single_worker_completion_signal(self):

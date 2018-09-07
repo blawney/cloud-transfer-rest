@@ -1,8 +1,11 @@
 import base64
+import json
 import datetime
 from Crypto.Cipher import DES
+import httplib2
 
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.conf import settings
@@ -25,6 +28,7 @@ import transfer_app.utils as utils
 import transfer_app.exceptions as exceptions
 import transfer_app.tasks as transfer_tasks
 import transfer_app.uploaders as _uploaders
+import transfer_app.downloaders as _downloaders
 
 
 @api_view(['GET'])
@@ -181,7 +185,7 @@ class TransferDetail(generics.RetrieveAPIView):
         does exist), return 404 if they are not allowed to access an object.
         '''
         obj = super(TransferDetail, self).get_object()
-        if (self.request.user.is_staff) or (obj.get_owner() == self.request.user):
+        if (self.request.user.is_staff) or (obj.originator == self.request.user):
             return obj
         else:
             raise Http404
@@ -203,8 +207,6 @@ class UserTransferList(generics.ListAPIView):
         user_pk = self.kwargs['user_pk']
         try:
             user = User.objects.get(pk=user_pk)
-            # use Django's lookup syntax-- filters Transfers where the owner attribute
-            # of the referenced Resource is our requested user.
             return Transfer.objects.user_transfers(user)
         except ObjectDoesNotExist as ex:
             raise Http404
@@ -339,64 +341,48 @@ class InitDownload(generics.CreateAPIView):
     '''
 
     def post(self, request, *args, **kwargs):
-
         # Parse the submitted data:
         data = request.data
         try:
             resource_pks = data['resource_pks']
-            destination = data['destination']
+            download_destination = data['destination']
         except KeyError as ex:                
             raise exceptions.RequestError('''
                 Missing required information for initiating transfer.
             ''')
 
+        # Here, we first do a spot-check on the data that was passed, BEFORE we invoke any asynchronous methods.
+        # We prepare/massage the necessary data for the upload here, and then pass a simple dictionary to the asynchronous
+        # method call.  We do this since it is easiest to pass a simple native dictionary to celery. 
+
+        user_pk = request.user.pk
+
         try:
-            resource_pks = [int(x) for x in resource_pks]
+            # Depending on which download destination was requested (and which compute environment we are in), grab the proper class:
+            downloader_cls = _downloaders.get_downloader(download_destination)
 
-            # get Resource instances with those PKs.  Does NOT raise errors
-            # if the primary keys do not exist!  Note that we have NOT yet
-            # checked ownership
-            resource_objs = Resource.objects.filter(pk__in=resource_pks)
+            # Check that the upload data has the required format to work with this uploader implementation:
+            download_info, error_messages = downloader_cls.check_format(resource_pks, user_pk)
 
-            # check that they own them:
-            if request.user.is_staff:
-                user_resource_objs = resource_objs
+            if len(error_messages) > 0:
+                return Response({'errors': error_messages})
             else:
-                user_resource_objs = [x for x in resource_objs if x.get_owner() == request.user ]
+                # stash the download info, since we will be redirecting through an authentication flow
+                request.session['download_info'] = download_info 
+                request.session['download_destination'] = download_destination
 
-            # if resources did not exist (i.e. pk was not valid) or they were not an owner of one or more
-            if len(resource_pks) != len(user_resource_objs):
-                raise exceptions.RequestError('''
-                    One of more of the resources requested was not transferred.  
-                    Aborting.''')
+                return downloader_cls.authenticate(request)
 
-            # check that the Resource objects are active.  Ideally (if choosing from UI)
-            # the user should not see expired Resource objects, but there is no such guarantee
-            # that a POST request will not choose an expired Resource.
-            user_resource_objs = [x for x in user_resource_objs if x.is_active]
+        except exceptions.ExceptionWithMessage as ex:
+            raise exceptions.RequestError(ex.message)
 
-            # We now have user-owned + active Resource objs.  Create a Transfer for each.
-            # First, create a TransferCoordinator to monitor them
-            tc = TransferCoordinator()
-            tc.save()
-
-            for resource in user_resource_objs:
-                t = Transfer(
-                     download=True,
-                     resource=resource,
-                     destination=destination,
-                     coordinator=tc 
-                )
-                t.save()
- 
-            # actually do the transfers:
-            utils.perform_transfers(tc)
-            
-        except ValueError as ex:
-            raise ParseError
+        except Exception as ex:
+            print('CAUGHT EX!')
+            print(ex)
+            response = exception_handler(ex, None)
 
         return Response({'message': 'thanks'})
-
+        
 
 class InitUpload(generics.CreateAPIView):
 
@@ -419,20 +405,21 @@ class InitUpload(generics.CreateAPIView):
             uploader_cls = _uploaders.get_uploader(upload_source)
 
             # Check that the upload data has the required format to work with this uploader implementation:
-            upload_info = uploader_cls.check_format(upload_info, user_pk)
+            upload_info, error_messages = uploader_cls.check_format(upload_info, user_pk)
 
-            # call async method:
-            tasks.upload.delay(upload_info, upload_source)
-
+            if len(error_messages) > 0:
+                return Response({'errors': error_messages})
+            elif len(upload_info) > 0:
+                # call async method:
+                transfer_tasks.upload.delay(upload_info, upload_source)
+                return Response({})
+            else: # no errors, but also nothing to do...
+                return Response({})
         except exceptions.ExceptionWithMessage as ex:
             raise exceptions.RequestError(ex.message)
 
         except Exception as ex:
-            print('CAUGHT EX!')
-            print(ex)
             response = exception_handler(ex, None)
-
-        return Response({'message': 'thanks'})
 
 
 

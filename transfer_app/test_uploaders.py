@@ -151,10 +151,11 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         for item in upload_info:
             edited_item = item.copy()
             edited_item['owner'] = user_pk
+            edited_item['originator'] = user_pk
             edited_item['destination'] = '%s/%s/%s' % (self.bucket_name, user_pk, edited_item['name'])
             expected_list.append(edited_item)
 
-        response = uploaders.GoogleDropboxUploader.check_format(upload_info, user_pk)
+        response, error_messages = uploaders.GoogleDropboxUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_list)
 
     def test_dropbox_upload_format_checker_case2(self):
@@ -175,11 +176,12 @@ class DropboxGoogleUploadInitTestCase(TestCase):
             {'path': 'https://dropbox-link.com/1', 
             'name':'f1.txt',
             'owner': user_pk,
+            'originator': user_pk,
             'destination': '%s/%s/%s' % (self.bucket_name, user_pk, upload_info['name'])
             },
         ]
 
-        response = uploaders.GoogleDropboxUploader.check_format(upload_info, user_pk)
+        response, error_messages = uploaders.GoogleDropboxUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected)
 
     def test_dropbox_upload_format_checker_rejects_poor_format_case1(self):
@@ -238,6 +240,8 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
         user_pk = 2
         expected_dict = upload_info.copy()
+        for item in expected_dict:
+            item['originator'] = user_pk
         response = uploaders.DropboxUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_dict)
 
@@ -250,7 +254,10 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
         user_pk = 1
         expected_dict = upload_info.copy()
+        for item in expected_dict:
+            item['originator'] = user_pk
         response = uploaders.DropboxUploader.check_format(upload_info, user_pk)
+        print(response)
         self.assertEqual(response, expected_dict)
 
     def test_dropbox_uploader_on_google_params(self):
@@ -266,7 +273,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2})
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
         
         # instantiate the class, but mock out the launcher.
         # Recall the launcher is the class that actually creates the worker VMs, which
@@ -299,7 +306,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
 
         upload_info = {'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2}
 
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
         
         uploader = uploader_cls(upload_info)
         m = mock.MagicMock()
@@ -332,7 +339,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
                         'owner':2, 
                         'size_in_bytes': filesize})
 
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
         
         uploader = uploader_cls(upload_info)
         uploader.config_params['disk_size_factor'] = 3
@@ -462,10 +469,11 @@ class DriveGoogleUploadInitTestCase(TestCase):
         for item in upload_info:
             edited_item = item.copy()
             edited_item['owner'] = user_pk
+            edited_item['originator'] = user_pk
             edited_item['destination'] = '%s/%s/%s' % (self.bucket_name, user_pk, edited_item['name'])
             expected_list.append(edited_item)
 
-        response = uploaders.GoogleDriveUploader.check_format(upload_info, user_pk)
+        response, error_messages = uploaders.GoogleDriveUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_list)
 
     def test_drive_upload_format_checker_case2(self):
@@ -486,12 +494,13 @@ class DriveGoogleUploadInitTestCase(TestCase):
             {'file_id': 'abc123',
             'name':'f1.txt',
             'owner': user_pk,
+            'originator': user_pk,
             'token': 'fooToken',
             'destination': '%s/%s/%s' % (self.bucket_name, user_pk, upload_info['name'])
             },
         ]
 
-        response = uploaders.GoogleDriveUploader.check_format(upload_info, user_pk)
+        response, error_messages = uploaders.GoogleDriveUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected)
 
     def test_drive_upload_format_checker_rejects_poor_format_case1(self):
@@ -550,6 +559,8 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'token': 'fooToken', 'owner':2})
         user_pk = 2
         expected_dict = upload_info.copy()
+        for item in expected_dict:
+            item['originator'] = user_pk
         response = uploaders.DriveUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_dict)
 
@@ -562,6 +573,8 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'token': 'fooToken', 'owner':2})
         user_pk = 1
         expected_dict = upload_info.copy()
+        for item in expected_dict:
+            item['originator'] = user_pk
         response = uploaders.DriveUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_dict)
 
@@ -578,7 +591,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'file_id': 'abc123', 'name':'f1.txt', 'token': 'fooToken', 'owner':2})
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'token': 'fooToken', 'owner':2})
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
         
         # instantiate the class, but mock out the launcher.
         # Recall the launcher is the class that actually creates the worker VMs, which
@@ -611,7 +624,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertEqual(uploader_cls, uploaders.GoogleDriveUploader)
 
         upload_info = {'file_id': 'abc123', 'name':'f1.txt', 'token': 'fooToken', 'owner':2}
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
         
         uploader = uploader_cls(upload_info)
         m = mock.MagicMock()
@@ -645,7 +658,8 @@ class DriveGoogleUploadInitTestCase(TestCase):
                         'owner':2, 
                         'size_in_bytes': filesize})
 
-        upload_info = uploader_cls.check_format(upload_info, 2)
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
+        print(upload_info)
         
         uploader = uploader_cls(upload_info)
         uploader.config_params['disk_size_factor'] = 3
@@ -657,7 +671,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertEqual(1, m.go.call_count)
 
         call_arg = m.go.call_args
+        print(call_arg)
         disk_size_in_gb = call_arg[0][0]['disks'][0]['initializeParams']['diskSizeGb']
+
         expected_size = int(filesize/1e9 * uploader.config_params['disk_size_factor'])
         self.assertEqual(expected_size, disk_size_in_gb)
 
@@ -690,7 +706,192 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
 
         with self.assertRaises(exceptions.FilenameException):
-            upload_info = uploader_cls.check_format(upload_info, 2)
+            upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
+
+    def test_warn_of_conflict_case1(self):
+        '''
+        Here, we pretend that a user has previously started an upload that is still going.
+        Then they try to upload that same file again (and also add a new one).  Here, we check that we block appropriately.
+        '''
+        source = settings.DROPBOX
+        uploader_cls = uploaders.get_uploader(source)
+        self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
+        
+        # prep the upload info as is usually performed:
+        upload_info = []
+        upload_info.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2})
+        upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
+
+        self.assertEqual(len(upload_info), 2)
+        self.assertEqual(len(error_messages), 0)
+        
+        # instantiate the class, but mock out the launcher.
+        # Recall the launcher is the class that actually creates the worker VMs, which
+        # we do not want to do as part of the test
+        uploader = uploader_cls(upload_info)
+        m = mock.MagicMock()
+        uploader.launcher = m
+
+        # mock launch of transfers, which creates the database objects
+        uploader.upload()
+
+        # prep the upload info as is usually performed:
+        additional_uploads = []
+        additional_uploads.append({'path': 'https://dropbox-link.com/3', 'name':'f3.txt', 'owner':2}) #new
+        additional_uploads.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2}) # same as above- so reject!
+        processed_uploads, error_messages = uploader_cls.check_format(additional_uploads, 2)
+
+        self.assertEqual(len(processed_uploads), 1)
+        self.assertEqual(len(error_messages), 1)
+
+        uploader = uploader_cls(processed_uploads)
+        m2 = mock.MagicMock()
+        uploader.launcher = m2
+
+        uploader.upload()
+        self.assertTrue(m2.go.called)
+        self.assertEqual(1, m2.go.call_count)
+
+        # check database objects:
+        all_transfers = Transfer.objects.all()
+        all_resources = Resource.objects.all()
+        all_tc = TransferCoordinator.objects.all()
+        self.assertTrue(len(all_transfers) == 3)
+        self.assertTrue(len(all_resources) == 3)
+        self.assertTrue(len(all_tc) == 2)
+        self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
+        self.assertTrue(all([not tc.completed for tc in all_tc])) # no transfer_coordinators are complete
 
 
+    def test_warn_of_conflict_case2(self):
+        '''
+        Here, we pretend that a user has previously started an upload that is still going.
+        Then they try to upload the same files again
+        '''
+        source = settings.DROPBOX
+        uploader_cls = uploaders.get_uploader(source)
+        self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
+        
+        # prep the upload info as is usually performed:
+        upload_info = []
+        upload_info.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2})
+        upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
+
+        self.assertEqual(len(upload_info), 2)
+        self.assertEqual(len(error_messages), 0)
+        
+        # instantiate the class, but mock out the launcher.
+        # Recall the launcher is the class that actually creates the worker VMs, which
+        # we do not want to do as part of the test
+        uploader = uploader_cls(upload_info)
+        m = mock.MagicMock()
+        uploader.launcher = m
+
+        # mock launch of transfers, which creates the database objects
+        uploader.upload()
+
+        # prep the upload info as is usually performed:
+        additional_uploads = []
+        additional_uploads.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2}) # same as above- so reject!
+        additional_uploads.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2})# same as above- reject
+        processed_uploads, error_messages = uploader_cls.check_format(additional_uploads, 2)
+
+        self.assertEqual(len(processed_uploads), 0)
+        self.assertEqual(len(error_messages), 2)
+
+        uploader = uploader_cls(processed_uploads)
+        m2 = mock.MagicMock()
+        uploader.launcher = m2
+
+        uploader.upload()
+        self.assertFalse(m2.go.called)
+
+        # check database objects:
+        all_transfers = Transfer.objects.all()
+        all_resources = Resource.objects.all()
+        all_tc = TransferCoordinator.objects.all()
+        self.assertTrue(len(all_transfers) == 2)
+        self.assertTrue(len(all_resources) == 2)
+        self.assertTrue(len(all_tc) == 1) # this means no NEW coordinators were created for the 'empty' case
+        self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
+        self.assertTrue(all([not tc.completed for tc in all_tc])) # no transfer_coordinators are complete
+
+    def test_warn_of_conflict_case3(self):
+        '''
+        Here, we initiate two transfers.  We mock one being completed, and THEN the user uploads another to the same
+        as an overwrite.  We want to allow this.
+        '''
+        source = settings.DROPBOX
+        uploader_cls = uploaders.get_uploader(source)
+        self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
+        
+        # prep the upload info as is usually performed:
+        upload_info = []
+        upload_info.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt', 'owner':2})
+        upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2})
+        upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
+
+        self.assertEqual(len(upload_info), 2)
+        self.assertEqual(len(error_messages), 0)
+        
+        # instantiate the class, but mock out the launcher.
+        # Recall the launcher is the class that actually creates the worker VMs, which
+        # we do not want to do as part of the test
+        uploader = uploader_cls(upload_info)
+        m = mock.MagicMock()
+        uploader.launcher = m
+
+        # mock launch of transfers, which creates the database objects
+        uploader.upload()
+
+        # check database objects:
+        all_transfers = Transfer.objects.all()
+        all_resources = Resource.objects.all()
+        all_tc = TransferCoordinator.objects.all()
+        self.assertTrue(len(all_transfers) == 2)
+        self.assertTrue(len(all_resources) == 2)
+        self.assertTrue(len(all_tc) == 1) # this means no NEW coordinators were created for the 'empty' case
+        self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
+        self.assertTrue(all([not tc.completed for tc in all_tc])) # no transfer_coordinators are complete
+
+        # make the transfers 'complete'
+        for t in all_transfers:
+            t.completed = True
+            t.save()
+        for tc in all_tc:
+            tc.completed = True
+            tc.save()
+        
+
+        # prep the upload info as is usually performed:
+        additional_uploads = []
+        additional_uploads.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt', 'owner':2}) # same as above
+        processed_uploads, error_messages = uploader_cls.check_format(additional_uploads, 2)
+
+        self.assertEqual(len(processed_uploads), 1)
+        self.assertEqual(len(error_messages), 0)
+
+        uploader = uploader_cls(processed_uploads)
+        m2 = mock.MagicMock()
+        uploader.launcher = m2
+
+        uploader.upload()
+        self.assertTrue(m2.go.called)
+        self.assertEqual(1, m2.go.call_count)
+
+        # check database objects:
+        all_transfers = Transfer.objects.all()
+        all_resources = Resource.objects.all()
+        all_tc = TransferCoordinator.objects.all()
+        self.assertTrue(len(all_transfers) == 3)
+        self.assertTrue(len(all_resources) == 3)
+        self.assertTrue(len(all_tc) == 2)
+
+        # count complete and incomplete:
+        self.assertTrue(sum([not x.completed for x in all_transfers]) == 1)
+        self.assertTrue(sum([x.completed for x in all_transfers]) == 2)
+        self.assertTrue(sum([not tc.completed for tc in all_tc])==1)
+        self.assertTrue(sum([tc.completed for tc in all_tc])==1)
 

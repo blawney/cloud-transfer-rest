@@ -1,8 +1,406 @@
+"""
+For downloads, the front end will send a list of Resource PKs which are cached
+while the client does the oauth2 flow.  Once the oauth2 flow is complete, the backend
+will have an access token.  The resource pk and the access token are then sent 
+(With other params) to a worker VM
+
+"""
+import os
+import hashlib
+import httplib2
+import urllib
+import json
+import datetime
+import copy
+
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.contrib.sites.models import Site
+from django.contrib.auth import get_user_model
+from rest_framework.exceptions import MethodNotAllowed
+
+import transfer_app.utils as utils
+from transfer_app.base import GoogleBase, AWSBase
+from transfer_app import tasks as transfer_tasks
+import transfer_app.exceptions as exceptions
+from transfer_app.models import Resource, Transfer, TransferCoordinator
+
+
 class Downloader(object):
-    pass
+
+    @classmethod
+    def get_config(cls, config_filepath):
+        return utils.load_config(config_filepath, cls.config_keys)
+
+    @classmethod
+    def _check_format(cls, download_info, user_pk):
+
+        # if we receive a single transfer, it might not be in a list
+        if type(download_info) is int:
+            download_info = [download_info,]
+        
+        # check that we have list of ints
+        try:
+            [int(x) for x in download_info]
+        except ValueError as ex:
+            raise exceptions.ExceptionWithMessage('''
+                The request payload must only contain 
+                integers for identifying resources to transfer.
+                Received: %s''' % download_info)
+
+        # check that all of those Resources are owned by the requester.
+        # if the requester is admin, can do anything
+        # otherwise, if ANY of the resources are invalid, reject everything
+        # This also catches the case where the user gives a primary that does not exist
+        try:
+            requesting_user = get_user_model().objects.get(pk=user_pk)
+        except ObjectDoesNotExist as ex:
+            raise exceptions.ExceptionWithMessage(ex)
+        if not requesting_user.is_staff:
+            all_user_resources = Resource.objects.user_resources(requesting_user)
+            all_user_resource_pks = [x.pk for x in all_user_resources if x.is_active]
+            if len(set(download_info).difference(set(all_user_resource_pks))) > 0:
+                raise exceptions.ExceptionWithMessage('''
+                    Requesting to transfer a resource you do not own.                
+                ''')    
+        reformatted_info = []
+        for pk in download_info:
+            d = {}
+            d['resource_pk'] = pk
+            d['originator'] = user_pk
+            d['destination'] = cls.destination
+            reformatted_info.append(d)
+        if len(reformatted_info) > 0:
+            return reformatted_info
+        else:
+            raise exceptions.ExceptionWithMessage('''
+               There were no valid resources to download.                
+            ''')   
+
+    def __init__(self, download_data):
+        self.download_data = download_data
+
+    def _transfer_setup(self):
+        '''
+        This creates the proper database instances for the downloads- it creates
+        the proper Transfer and TransferCoordinator instances
+
+        This function expects that self.upload_data is a list and each
+        item in the list is a dict.  Each dict NEEDS to have certain keys (see code)
+
+        '''
+        if len(self.download_data) > 0:
+            tc = TransferCoordinator()
+            tc.save()
+        else:
+            return
+
+        for item in self.download_data:
+            originator = get_user_model().objects.get(pk=item['originator'])
+            resource = Resource.objects.get(pk=item['resource_pk'])
+
+            # we obviously need the path where the resource is:
+            item['path'] = resource.path
+
+            # since the resource instance has a size field, add that to our dict so we 
+            # know how large to size the transfer VM
+            item['size_in_bytes'] = resource.size
+
+            t = Transfer(
+                 download=True,
+                 resource=resource,
+                 destination=item['destination'],
+                 coordinator=tc,
+                 originator = originator
+            )
+            t.save()
+
+            # finally add the transfer primary key to the dictionary so we will
+            # be able to track the transfers
+            item['transfer_pk'] = t.pk
+
 
 class DropboxDownloader(Downloader):
+
+    destination = settings.DROPBOX
+    config_keys = ['dropbox',]
+    
+    @classmethod
+    def check_format(cls, download_info, user_pk):
+        return super()._check_format(download_info, user_pk)
+
+    @classmethod
+    def authenticate(cls, config_filepath, request):
+        config_params = super().get_config(config_filepath)
+
+        code_request_uri = settings.CONFIG_PARAMS['dropbox_auth_endpoint']
+        response_type = 'code'
+
+        # for validating that we're not being spoofed
+        state = hashlib.sha256(os.urandom(1024)).hexdigest()
+        request.session['session_state'] = state
+
+        # construct the callback URL for Dropbox to use:
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+        url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&force_reauthentication=true&state={state}".format(
+            code_request_uri = code_request_uri,
+            response_type = response_type,
+            client_id = settings.CONFIG_PARAMS['dropbox_client_id'],
+            redirect_uri = code_callback_url,
+            state = state
+        )
+        return HttpResponseRedirect(url)
+
+    @classmethod
+    def finish_authentication_and_start_download(cls, request):
+
+        if request.method == 'GET':
+            parser = httplib2.Http()
+            if 'error' in request.GET or 'code' not in request.GET:
+                raise exceptions.RequestError('There was an error on the callback')
+            if request.GET['state'] != request.session['session_state']:
+                raise exceptions.RequestError('There was an error on the callback-- state mismatch')
+	
+            current_site = Site.objects.get_current()
+            domain = current_site.domain
+            code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+            params = urllib.parse.urlencode({
+                'code':request.GET['code'],
+                'redirect_uri':settings.CONFIG_PARAMS['dropbox_callback'],
+                'client_id':settings.CONFIG_PARAMS['dropbox_client_id'],
+                'client_secret':settings.CONFIG_PARAMS['dropbox_secret'],
+                'grant_type':'authorization_code'
+            })
+            headers={'content-type':'application/x-www-form-urlencoded'}
+            resp, content = parser.request(settings.CONFIG_PARAMS['dropbox_token_endpoint'], method = 'POST', body = params, headers = headers)
+            c = json.loads(content)
+            access_token = c['access_token']
+            download_info = request.session.get('download_info', None)
+            for item in download_info:
+                item['access_token'] = access_token
+
+            # call async method:
+            transfer_tasks.download.delay(download_info, request.session['download_destination'])
+        else:
+            raise MethodNotAllowed('Method not allowed.')
+
+    def _transfer_setup(self):
+        '''
+        about
+        '''
+        return super()._transfer_setup()
+
+
+class DriveDownloader(Downloader):
+
+    config_keys = ['drive',]
+    destination = settings.GOOGLE_DRIVE
+
+    @classmethod
+    def authenticate(cls, config_filepath, request):
+        config_params = super().get_config(config_filepath)
+
+
+class EnvironmentSpecificDownloader(object):
+
+    config_key_list = []
+    config_file = settings.DOWNLOADER_CONFIG['CONFIG_PATH']
+
+    def __init__(self, download_data):
+        #instantiate the wrapped classes:
+        self.downloader = self.downloader_cls(download_data)
+        self.launcher = self.launcher_cls()
+        self.config_params = utils.load_config(self.config_file, self.config_key_list)
+
+    @classmethod
+    def authenticate(cls, request):
+        cls.downloader_cls.authenticate(cls.config_file, request)
+
+    @classmethod
+    def finish_authentication_and_start_download(cls, request):
+        cls.downloader_cls.finish_authentication_and_start_download(request)
+    
+
+    def download(self):
+        transfer_coordinator = self.downloader._transfer_setup()
+        self.config_and_start_downloads()
+
+
+class GoogleEnvironmentDownloader(EnvironmentSpecificDownloader, GoogleBase):
+
+    @classmethod
+    def check_format(cls, download_info, user_pk):
+        '''
+        Check the download request for formatting issues, etc. that are Google-specific here
+        More general issues, such as those related to the downloader itself can be handled via
+        the parent
+
+        This happens before any asynchronous download behavior, so this is a good place
+        to check things like filename length, etc. that are specific to google 
+        '''
+
+        # first run the format check that is dependent on the downloader:
+        # This returns a list of dicts
+        download_info = cls.downloader_cls.check_format(download_info, user_pk)
+
+        # Finally, check that the file is not already being transferred:
+        download_info, error_messages = cls._check_conflicts(download_info)
+
+        return download_info, error_messages
+
+    @classmethod
+    def _check_conflicts(cls, download_data):
+        '''
+        Here we check if any of the requested downloads have already been started.
+        Each item in self.download_data has a key of 'destination'.  If any existing, INCOMPLETE
+        transfers have the same destination, then we block it.
+        '''
+
+        # by design, each download can only be started by a single originator
+        # Thus, it's ok to grab the first element of the list and know that 
+        # each download has the same originator
+        originator_pk = download_data[0]['originator']
+        originator = get_user_model().objects.get(pk=originator_pk)
+
+        # get all the incomplete transfers started by this user:
+        all_incomplete_transfers = Transfer.objects.filter(completed=False, originator=originator)
+        resource_pks_for_incomplete_transfers = [x.resource.pk for x in all_incomplete_transfers]
+
+        new_transfers = []
+        error_messages = []
+        for item in download_data:
+            # check if this resource is already being transferred:
+            if item['resource_pk'] in resource_pks_for_incomplete_transfers:
+                resource = Resource.objects.get(pk = item['resource_pk'])
+                filename = os.path.basename(resource.path)
+                msg = '''The file with name %s is already in progress.  
+                        If you wish to overwrite, please wait until the download is complete and
+                        try again, if available.''' % filename
+                error_messages.append(msg)
+            else:
+                new_transfers.append(item)
+        # reassign self.upload_data now that we have checked for existing transfers:
+        return new_transfers, error_messages
+
+    def __init__(self, download_data):
+        self.config_key_list.extend(GoogleBase.config_keys)
+        super().__init__(download_data)
+
+
+class AWSEnvironmentDownloader(EnvironmentSpecificDownloader, AWSBase):
     pass
 
-class GoogleDriveDownloader(Downloader):
-    pass
+
+class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
+    downloader_cls = DropboxDownloader
+    config_keys = ['dropbox_in_google',]
+
+    def __init__(self, download_data):
+        self.config_key_list.extend(GoogleDropboxDownloader.config_keys)
+        super().__init__(download_data)
+
+    def config_and_start_downloads(self):
+
+        custom_config = copy.deepcopy(self.config_params)
+        print(custom_config)
+        disk_size_factor = float(custom_config['disk_size_factor'])
+        min_disk_size = int(float(custom_config['min_disk_size']))
+
+        # construct a callback so the worker can communicate back to the application server:
+        callback_url = reverse('transfer-complete')
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+
+        # need to specify the full path to the startup script
+        startup_script_url = os.path.join(settings.CONFIG_PARAMS['storage_base'], custom_config['startup_script_path'])
+
+        for i, item in enumerate(self.downloader.download_data):
+
+            config = copy.deepcopy(self.base_config)
+
+            instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
+                datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
+                i                
+            )
+            config['name'] =  instance_name
+
+            config['machineType'] = custom_config['machine_type']
+
+            # approx size in Gb so we can size the VM appropriately
+            size_in_gb = item['size_in_bytes']/1e9
+            target_disk_size = int(disk_size_factor*size_in_gb)
+            if target_disk_size < min_disk_size:
+                target_disk_size = min_disk_size
+            disk_config = {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams':{
+                    'sourceImage': custom_config['source_disk_image'],
+                    'diskSizeGb': target_disk_size
+                }
+            }
+            config['disks'].append(disk_config)
+
+            # now do the other metadata commands
+            metadata_list = []
+            metadata_list.append({'key':'startup-script-url', 'value':startup_script_url})
+            metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
+            metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
+            metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
+            metadata_list.append({'key':'access_token', 'value':item['access_token']}) # the Dropbox access token
+            metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
+            metadata_list.append({'key':'google_project', 'value':settings.CONFIG_PARAMS['google_project_id']})
+            metadata_list.append({'key': 'resource_path', 'value': item['path']})
+
+            config['metadata']['items'] = metadata_list
+            self.launcher.go(config)
+
+
+class GoogleDriveDownloader(GoogleEnvironmentDownloader):
+    downloader_cls = DriveDownloader
+    config_keys = ['drive_in_google',]
+
+
+class AWSDropboxDownloader(AWSEnvironmentDownloader):
+    downloader_cls = DropboxDownloader
+    config_keys = ['dropbox_in_aws',]
+
+
+class AWSDriveDownloader(AWSEnvironmentDownloader):
+    downloader_cls = DriveDownloader
+    config_keys = ['drive_in_aws',]
+
+
+def get_downloader(destination):
+    '''
+    Based on the compute environment and the destination of the download
+    choose the appropriate class to use.
+    '''
+
+    # This defines a two-level dictionary from which we can choose
+    # a class.  Additional sub-classes of EnvironmentSpecificUploader
+    # need to be in this if they are to be used.  Otherwise, the application
+    # will 'not know' about the class
+    class_mapping = {
+        settings.GOOGLE : {
+            settings.GOOGLE_DRIVE : GoogleDriveDownloader,
+            settings.DROPBOX : GoogleDropboxDownloader,
+        },
+        settings.AWS : {
+            settings.GOOGLE_DRIVE : AWSDriveDownloader,
+            settings.DROPBOX : AWSDropboxDownloader,
+        }
+    }
+    environment = settings.CONFIG_PARAMS['compute_environment']
+    try:
+        return class_mapping[environment][destination]
+    except KeyError as ex:
+        raise exceptions.ExceptionWithMessage('''
+            You did not specify an uploader implementation for:
+                Compute environment: %s
+                Download destination: %s
+        ''' % (environment, destination))

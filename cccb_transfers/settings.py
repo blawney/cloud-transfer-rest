@@ -169,3 +169,14 @@ UPLOADER_CONFIG = {
         GOOGLE_DRIVE
     ]
 }
+
+DOWNLOADER_CONFIG = {
+    'CONFIG_PATH' : os.path.join(CONFIG_DIR, 'downloaders.cfg'),
+
+    # for each item in the following dictionary, there needs to be a section 
+    # header in the config file located at UPLOADER_CONFIG.CONFIG_PATH
+    'DOWNLOAD_DESTINATIONS' : [
+        DROPBOX,
+        GOOGLE_DRIVE
+    ]
+}

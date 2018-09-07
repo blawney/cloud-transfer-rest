@@ -2,6 +2,9 @@ from django.urls import re_path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from transfer_app import views
+from transfer_app.downloaders import DropboxDownloader
+import transfer_app.utils as XYZ
+import transfer_app.tasks as XYZtasks
 
 '''
 For all the endpoints given here, consult the specific view for
@@ -24,10 +27,8 @@ urlpatterns = [
 
     # endpoints related to querying Transfers:
     re_path(r'^transfers/$', views.TransferList.as_view(), name='transfer-list'),
-    #re_path(r'^transfers/upload/init/$', views.init_upload_transfers, name='upload-transfer-initiation'),
     re_path(r'^transfers/upload/init/$', views.InitUpload.as_view(), name='upload-transfer-initiation'),
     re_path(r'^transfers/download/init/$', views.InitDownload.as_view(), name='download-transfer-initiation'),
-    #re_path(r'^transfers/download/init/$', views.init_download_transfers, name='download-transfer-initiation'),
     re_path(r'^transfers/(?P<pk>[0-9]+)/$', views.TransferDetail.as_view(), name='transfer-detail'),
     re_path(r'^transfers/user/(?P<user_pk>[0-9]+)/$', views.UserTransferList.as_view(), name='user-transfer-list'),
 
@@ -38,6 +39,9 @@ urlpatterns = [
 
     # endpoints for communicating from worker machines:
     re_path(r'^transfers/complete/$', views.TransferComplete.as_view(), name='transfer-complete'),
+
+    # endpoints for callbacks:
+    re_path(r'^dropbox/callback/$', DropboxDownloader.finish_authentication_and_start_download, name='dropbox_token_callback')
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

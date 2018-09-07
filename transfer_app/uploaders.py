@@ -1,10 +1,9 @@
 import os
 import datetime
+import copy
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-#django.contrib.auth.models
-#from django.contrib.auth.models import DoesNotExist
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.contrib.sites.models import Site
@@ -18,28 +17,36 @@ from transfer_app.launchers import GoogleLauncher, AWSLauncher
 
 class Uploader(object):
 
+    # these are keys required to be provided with the request.  Keys that are required regardless of
+    # the upload source should be added to this list.  Those that are specific to a particular uploader
+    # should be added to the child class under 'required_keys' class member
+    required_keys = ['name', ]
+
     def __init__(self, upload_data):
         self.upload_data = upload_data
-
-    #@classmethod
-    #def _add_source(cls, data_dict):
-    #    data_dict['source'] = cls.source
 
     @classmethod
     def _validate_ownership(cls, data_dict, requesting_user):
         try:
             # if 'owner' was included in the object, check that the owner PK matches theirs
-            # unless the requet was issued by an admin
+            # unless the request was issued by an admin
             intended_owner = data_dict['owner']
-            if (not requesting_user.is_staff) and (requesting_user.pk != intended_owner):
-                raise exceptions.ExceptionWithMessage('''
-                    Cannot assign ownership of an upload to someone other than yourself.''')
+            if requesting_user.pk != intended_owner:
+                if requesting_user.is_staff:
+                    data_dict['originator'] = requesting_user.pk
+                else:
+                    raise exceptions.ExceptionWithMessage('''
+                        Cannot assign ownership of an upload to someone other than yourself.''')
+            else:
+                data_dict['originator'] = data_dict['owner']
         except KeyError as ex:
             data_dict['owner'] = requesting_user.pk
+            data_dict['originator'] = requesting_user.pk
 
     @classmethod
     def _check_keys(cls, data_dict):
-        for key in cls.required_keys:
+        all_required_keys = list(set(Uploader.required_keys + cls.required_keys))
+        for key in all_required_keys:
             try:
                 data_dict[key]
             except KeyError as ex:
@@ -70,14 +77,19 @@ class Uploader(object):
         the proper Resource, Transfer, and TransferCoordinator instances
 
         This function expects that self.upload_data is a list and each
-        item in the list is a dict.  Each dict NEEDS to have 'owner' and
+        item in the list is a dict.  Each dict NEEDS to have 'owner', 'destination', and
         'path' among the keys
         '''
-        tc = TransferCoordinator()
-        tc.save()
+        if len(self.upload_data) > 0:
+            tc = TransferCoordinator()
+            tc.save()
+        else:
+            return
 
         for item in self.upload_data:
             owner = get_user_model().objects.get(pk=item['owner'])
+            originator = get_user_model().objects.get(pk=item['originator'])
+
             try:
                 filesize_in_bytes = item['size_in_bytes']
             except KeyError as e:
@@ -96,7 +108,8 @@ class Uploader(object):
                  download=False,
                  resource=r,
                  destination=item['destination'],
-                 coordinator=tc
+                 coordinator=tc,
+                 originator = originator
             )
             t.save()
 
@@ -119,7 +132,7 @@ class DropboxUploader(Uploader):
     source = settings.DROPBOX
 
     # the only required keys:
-    required_keys = ['path', 'name']
+    required_keys = ['path',]
 
     @classmethod
     def check_format(cls, upload_data, uploader_pk):
@@ -170,7 +183,7 @@ class DriveUploader(Uploader):
     '''
     
     source = settings.GOOGLE_DRIVE
-    required_keys = ['file_id', 'token', 'name']
+    required_keys = ['file_id', 'token']
 
     @classmethod
     def check_format(cls, upload_data, uploader_pk):
@@ -236,7 +249,6 @@ class EnvironmentSpecificUploader(object):
         return cls.uploader_cls.check_format(upload_info, uploader_pk)
 
     def upload(self):
-
         self.uploader._transfer_setup()
         self.config_and_start_uploads()     
 
@@ -280,14 +292,40 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
             else:
                 item_dict['destination'] = full_item_name
 
-        return upload_info
+        # Finally, check that the file is not already being transferred:
+        upload_info, error_messages = cls._check_conflicts(upload_info)
+
+        return upload_info, error_messages
+
+    @classmethod
+    def _check_conflicts(cls, upload_data):
+        '''
+        Here we check if any of the requested uploads have already been started.
+        Each item in self.upload_data has a key of 'destination'.  If any existing, INCOMPLETE
+        transfers have the same destination, then we block it.
+        '''
+        all_incomplete_transfers = Transfer.objects.filter(completed=False)
+        destinations = [x.destination for x in all_incomplete_transfers]
+        new_transfers = []
+        error_messages = []
+        for item in upload_data:
+            if item['destination'] in destinations:
+                msg = '''The file with name %s is already in progress.  
+                        If you wish to overwrite, please wait until the upload is complete and
+                        try again''' % item['name']
+                error_messages.append(msg)
+            else:
+                new_transfers.append(item)
+
+        return new_transfers, error_messages
 
     def __init__(self, upload_data):
         self.config_key_list.extend(GoogleBase.config_keys)
         super().__init__(upload_data)
 
-    def config_and_start_uploads(self):    
-        pass
+
+    def config_and_start_uploads(self):
+            pass
         
 
 
@@ -304,7 +342,7 @@ class GoogleDropboxUploader(GoogleEnvironmentUploader):
         # use the parent class to setup the other database components
         super().config_and_start_uploads()
 
-        custom_config = self.config_params.copy()
+        custom_config = copy.deepcopy(self.config_params)
         disk_size_factor = float(custom_config['disk_size_factor'])
         min_disk_size = int(float(custom_config['min_disk_size']))
 
@@ -319,7 +357,7 @@ class GoogleDropboxUploader(GoogleEnvironmentUploader):
 
         for i, item in enumerate(self.uploader.upload_data):
 
-            config = self.base_config.copy()
+            config = copy.deepcopy(self.base_config)
 
             instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
                 datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
@@ -372,7 +410,7 @@ class GoogleDriveUploader(GoogleEnvironmentUploader):
         # use the parent class to setup the other database components
         super().config_and_start_uploads()
 
-        custom_config = self.config_params.copy()
+        custom_config = copy.deepcopy(self.config_params)
         disk_size_factor = float(custom_config['disk_size_factor'])
         min_disk_size = int(float(custom_config['min_disk_size']))
 
@@ -387,7 +425,7 @@ class GoogleDriveUploader(GoogleEnvironmentUploader):
 
         for i, item in enumerate(self.uploader.upload_data):
 
-            config = self.base_config.copy()
+            config = copy.deepcopy(self.base_config)
 
             instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
                 datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
@@ -429,17 +467,17 @@ class GoogleDriveUploader(GoogleEnvironmentUploader):
 
 
 class AWSEnvironmentUploader(EnvironmentSpecificUploader):
-    launcher_cls = AWSLauncher
+    pass
 
 
 class AWSDropboxUploader(AWSEnvironmentUploader):
     uploader_cls = DropboxUploader
-    config_key = 'dropbox_in_aws'
+    config_keys = ['dropbox_in_aws',]
 
 
 class AWSDriveUploader(AWSEnvironmentUploader):
     uploader_cls = DriveUploader
-    config_key = 'drive_in_aws'
+    config_keys = ['drive_in_aws',]
 
 
 def get_uploader(source):
