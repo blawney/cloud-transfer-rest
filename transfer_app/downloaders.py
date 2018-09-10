@@ -31,6 +31,8 @@ class Downloader(object):
 
     @classmethod
     def get_config(cls, config_filepath):
+        print(config_filepath)
+        print(cls.config_keys)
         return utils.load_config(config_filepath, cls.config_keys)
 
     @classmethod
@@ -196,12 +198,71 @@ class DropboxDownloader(Downloader):
 
 class DriveDownloader(Downloader):
 
-    config_keys = ['drive',]
+    config_keys = ['google_drive',]
     destination = settings.GOOGLE_DRIVE
+
+    @classmethod
+    def check_format(cls, download_info, user_pk):
+        return super()._check_format(download_info, user_pk)
 
     @classmethod
     def authenticate(cls, config_filepath, request):
         config_params = super().get_config(config_filepath)
+
+        code_request_uri = settings.CONFIG_PARAMS['drive_auth_endpoint']
+        response_type = 'code'
+        scope = settings.CONFIG_PARAMS['drive_scope']
+
+        # for validating that we're not being spoofed
+        state = hashlib.sha256(os.urandom(1024)).hexdigest()
+        request.session['session_state'] = state
+
+        # construct the callback URL for Drive to use:
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+        url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&state={state}".format(
+            code_request_uri = code_request_uri,
+            response_type = response_type,
+            client_id = settings.CONFIG_PARAMS['drive_client_id'],
+            redirect_uri = code_callback_url,
+            scope = scope,
+            state = state
+        )
+        return HttpResponseRedirect(url)
+
+    @classmethod
+    def finish_authentication_and_start_download(cls, request):
+
+        if request.method == 'GET':
+            parser = httplib2.Http()
+            if 'error' in request.GET or 'code' not in request.GET:
+                raise exceptions.RequestError('There was an error on the callback')
+            if request.GET['state'] != request.session['session_state']:
+                raise exceptions.RequestError('There was an error on the callback-- state mismatch')
+	
+            current_site = Site.objects.get_current()
+            domain = current_site.domain
+            code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+            params = urllib.parse.urlencode({
+                'code':request.GET['code'],
+                'redirect_uri':settings.CONFIG_PARAMS['drive_callback'],
+                'client_id':settings.CONFIG_PARAMS['drive_client_id'],
+                'client_secret':settings.CONFIG_PARAMS['drive_secret'],
+                'grant_type':'authorization_code'
+            })
+            headers={'content-type':'application/x-www-form-urlencoded'}
+            resp, content = parser.request(settings.CONFIG_PARAMS['drive_token_endpoint'], method = 'POST', body = params, headers = headers)
+            c = json.loads(content)
+            access_token = c['access_token']
+            download_info = request.session.get('download_info', None)
+            for item in download_info:
+                item['access_token'] = access_token
+
+            # call async method:
+            transfer_tasks.download.delay(download_info, request.session['download_destination'])
+        else:
+            raise MethodNotAllowed('Method not allowed.')
 
 
 class EnvironmentSpecificDownloader(object):
@@ -363,6 +424,67 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
 class GoogleDriveDownloader(GoogleEnvironmentDownloader):
     downloader_cls = DriveDownloader
     config_keys = ['drive_in_google',]
+
+    def __init__(self, download_data):
+        self.config_key_list.extend(GoogleDriveDownloader.config_keys)
+        super().__init__(download_data)
+
+    def config_and_start_downloads(self):
+
+        custom_config = copy.deepcopy(self.config_params)
+        print(custom_config)
+        disk_size_factor = float(custom_config['disk_size_factor'])
+        min_disk_size = int(float(custom_config['min_disk_size']))
+
+        # construct a callback so the worker can communicate back to the application server:
+        callback_url = reverse('transfer-complete')
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+
+        # need to specify the full path to the startup script
+        startup_script_url = os.path.join(settings.CONFIG_PARAMS['storage_base'], custom_config['startup_script_path'])
+
+        for i, item in enumerate(self.downloader.download_data):
+
+            config = copy.deepcopy(self.base_config)
+
+            instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
+                datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
+                i                
+            )
+            config['name'] =  instance_name
+
+            config['machineType'] = custom_config['machine_type']
+
+            # approx size in Gb so we can size the VM appropriately
+            size_in_gb = item['size_in_bytes']/1e9
+            target_disk_size = int(disk_size_factor*size_in_gb)
+            if target_disk_size < min_disk_size:
+                target_disk_size = min_disk_size
+            disk_config = {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams':{
+                    'sourceImage': custom_config['source_disk_image'],
+                    'diskSizeGb': target_disk_size
+                }
+            }
+            config['disks'].append(disk_config)
+
+            # now do the other metadata commands
+            metadata_list = []
+            metadata_list.append({'key':'startup-script-url', 'value':startup_script_url})
+            metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
+            metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
+            metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
+            metadata_list.append({'key':'access_token', 'value':item['access_token']}) # the Google access token
+            metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
+            metadata_list.append({'key':'google_project', 'value':settings.CONFIG_PARAMS['google_project_id']})
+            metadata_list.append({'key': 'resource_path', 'value': item['path']})
+
+            config['metadata']['items'] = metadata_list
+            self.launcher.go(config)
 
 
 class AWSDropboxDownloader(AWSEnvironmentDownloader):

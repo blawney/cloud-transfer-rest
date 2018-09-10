@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 
-def read_config(config_filepath):
+def read_config(config_filepath, additional_sections=[]):
 
     cfg = ConfigParser()
     cfg.read(config_filepath)
@@ -25,5 +25,10 @@ def read_config(config_filepath):
             provides the required parameters for your selected compute environment.''' % ex)
     for key in section:
             config_dict[key] = section[key]
+
+    for section_name in  additional_sections:
+        section = cfg[section_name]
+        for key in section:
+            config_dict[key] = section[key]        
 
     return config_dict

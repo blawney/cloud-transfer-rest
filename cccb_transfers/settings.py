@@ -152,8 +152,9 @@ DROPBOX = 'dropbox'
 # Read the general configuration file, which will load the settings appropriate for the environment
 import cccb_transfers.utils as utils
 
+additional_sections = [GOOGLE_DRIVE, DROPBOX]
 CONFIG_DIR = os.path.join(BASE_DIR, 'config')
-CONFIG_PARAMS = utils.read_config(os.path.join(CONFIG_DIR, 'general.cfg'))
+CONFIG_PARAMS = utils.read_config(os.path.join(CONFIG_DIR, 'general.cfg'), additional_sections)
 
 
 ###################
