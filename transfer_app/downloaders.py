@@ -14,7 +14,7 @@ import datetime
 import copy
 
 from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.contrib.sites.models import Site
 from django.contrib.auth import get_user_model
@@ -171,21 +171,34 @@ class DropboxDownloader(Downloader):
             code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
             params = urllib.parse.urlencode({
                 'code':request.GET['code'],
-                'redirect_uri':settings.CONFIG_PARAMS['dropbox_callback'],
+                'redirect_uri':code_callback_url,
                 'client_id':settings.CONFIG_PARAMS['dropbox_client_id'],
                 'client_secret':settings.CONFIG_PARAMS['dropbox_secret'],
                 'grant_type':'authorization_code'
             })
             headers={'content-type':'application/x-www-form-urlencoded'}
             resp, content = parser.request(settings.CONFIG_PARAMS['dropbox_token_endpoint'], method = 'POST', body = params, headers = headers)
-            c = json.loads(content)
-            access_token = c['access_token']
-            download_info = request.session.get('download_info', None)
+            c = json.loads(content.decode('utf-8'))
+            try:
+                access_token = c['access_token']
+            except KeyError as ex:
+                raise exceptions.ExceptionWithMessage('''
+                    The response did not have the "access_token" key, so the OAuth2 flow did not succeed.
+                    The response body was %s
+                ''' % c)
+            try:
+                download_info = request.session['download_info']
+            except KeyError as ex:
+                raise exceptions.ExceptionWithMessage('There was no download_info registered with the session')
+
             for item in download_info:
                 item['access_token'] = access_token
 
+            print('Token: %s' % access_token)
+
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
+            return HttpResponse('OK')
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -246,21 +259,34 @@ class DriveDownloader(Downloader):
             code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
             params = urllib.parse.urlencode({
                 'code':request.GET['code'],
-                'redirect_uri':settings.CONFIG_PARAMS['drive_callback'],
+                'redirect_uri':code_callback_url,
                 'client_id':settings.CONFIG_PARAMS['drive_client_id'],
                 'client_secret':settings.CONFIG_PARAMS['drive_secret'],
                 'grant_type':'authorization_code'
             })
             headers={'content-type':'application/x-www-form-urlencoded'}
             resp, content = parser.request(settings.CONFIG_PARAMS['drive_token_endpoint'], method = 'POST', body = params, headers = headers)
-            c = json.loads(content)
-            access_token = c['access_token']
-            download_info = request.session.get('download_info', None)
+            print(content)
+            c = json.loads(content.decode('utf-8'))
+            try:
+                access_token = c['access_token']
+            except KeyError as ex:
+                raise exceptions.ExceptionWithMessage('''
+                    The response did not have the "access_token" key, so the OAuth2 flow did not succeed.
+                    The response body was %s
+                ''' % c)
+            try:
+                download_info = request.session['download_info']
+            except KeyError as ex:
+                raise exceptions.ExceptionWithMessage('There was no download_info registered with the session')
+
             for item in download_info:
                 item['access_token'] = access_token
 
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
+
+            return HttpResponse('')
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -278,11 +304,11 @@ class EnvironmentSpecificDownloader(object):
 
     @classmethod
     def authenticate(cls, request):
-        cls.downloader_cls.authenticate(cls.config_file, request)
+        return cls.downloader_cls.authenticate(cls.config_file, request)
 
     @classmethod
     def finish_authentication_and_start_download(cls, request):
-        cls.downloader_cls.finish_authentication_and_start_download(request)
+        return cls.downloader_cls.finish_authentication_and_start_download(request)
     
 
     def download(self):

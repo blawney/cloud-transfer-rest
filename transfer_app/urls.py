@@ -2,10 +2,9 @@ from django.urls import re_path
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from transfer_app import views
-from transfer_app.downloaders import DropboxDownloader
-import transfer_app.utils as XYZ
-import transfer_app.tasks as XYZtasks
+from transfer_app.downloaders import *
 
+from transfer_app import live_oauth2_tests
 '''
 For all the endpoints given here, consult the specific view for
 details about the actual methods they support, and what sorts of 
@@ -41,7 +40,13 @@ urlpatterns = [
     re_path(r'^transfers/complete/$', views.TransferComplete.as_view(), name='transfer-complete'),
 
     # endpoints for callbacks:
-    re_path(r'^dropbox/callback/$', DropboxDownloader.finish_authentication_and_start_download, name='dropbox_token_callback')
+    re_path(r'^dropbox/callback/$', DropboxDownloader.finish_authentication_and_start_download, name='dropbox_token_callback'),
+    re_path(r'^oauth-dev/dropbox/$', views.test_dropbox, name='dropbox_oauth-test'),
+    re_path(r'^oauth-dev/dropbox-callback/$', DropboxDownloader.finish_authentication_and_start_download, name='drive_token_callback_test'),
+    re_path(r'^oauth-dev/drive/$', views.test_drive, name='drive_oauth-test'),
+    re_path(r'^oauth-dev/drive-callback/$', DriveDownloader.finish_authentication_and_start_download, name='drive_token_callback_test'),
+    re_path(r'^oauth-dev/test/dummy/$', live_oauth2_tests.dropbox_code_exchange_test),
+    re_path(r'^oauth-dev/test/dropbox-callback/$', live_oauth2_tests.dropbox_token_exchange_test)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

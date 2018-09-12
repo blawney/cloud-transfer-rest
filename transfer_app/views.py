@@ -18,6 +18,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.views import exception_handler, APIView
 
 from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import render
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 from transfer_app.serializers import ResourceSerializer, \
@@ -30,6 +31,18 @@ import transfer_app.tasks as transfer_tasks
 import transfer_app.uploaders as _uploaders
 import transfer_app.downloaders as _downloaders
 
+
+def test_dropbox(request):
+    #context = {'msg': 'hello, world'}
+    #return render(request, 'transfer_app/dummy.html', context)
+    print(settings.CONFIG_PARAMS)
+    downloader_cls = _downloaders.get_downloader(settings.DROPBOX)
+    return downloader_cls.authenticate(request)
+
+def test_drive(request):
+    print(settings.CONFIG_PARAMS)
+    downloader_cls = _downloaders.get_downloader(settings.GOOGLE_DRIVE)
+    return downloader_cls.authenticate(request)
 
 @api_view(['GET'])
 def api_root(request, format=None):

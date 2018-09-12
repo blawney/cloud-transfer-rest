@@ -266,6 +266,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         This test takes a properly formatted request and checks that the database objects have been properly
         created.  
         '''
+        print(settings.CONFIG_PARAMS)
         downloader_cls = downloaders.get_downloader(self.destination)
         
         # prep the download info as is usually performed:
@@ -443,7 +444,7 @@ class GoogleDropboxDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         download_info = [{'resource_pk':1, 'owner':2},{'resource_pk':2, 'owner':2}]
 
         mock_parser = mock.MagicMock()
-        content = '{"access_token": "foo"}' # a json-format string
+        content = b'{"access_token": "foo"}' # a json-format string
         mock_parser.request.return_value = (None, content)
         mock_httplib.Http.return_value = mock_parser
 
@@ -466,18 +467,23 @@ class GoogleDropboxDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         }
 
         token_url = 'https://fake-auth.com/oauth2/token'
+
         callback_url = 'dropbox/callback/'
         client_id = 'mockclient'
         secret = 'somesecret'
         settings.CONFIG_PARAMS['dropbox_auth_endpoint'] = 'https://fake-auth.com/oauth2/authorize'
         settings.CONFIG_PARAMS['dropbox_token_endpoint'] = token_url
-        settings.CONFIG_PARAMS['dropbox_callback'] = callback_url
+        settings.CONFIG_PARAMS['dropbox_callback'] = 'dropbox/callback'
         settings.CONFIG_PARAMS['dropbox_client_id'] = client_id
         settings.CONFIG_PARAMS['dropbox_secret'] = secret
         headers={'content-type':'application/x-www-form-urlencoded'}
+
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
         expected_params = urllib.parse.urlencode({
                 'code':code,
-                'redirect_uri': callback_url,
+                'redirect_uri': full_callback_url,
                 'client_id': client_id,
                 'client_secret': secret,
                 'grant_type':'authorization_code'
@@ -600,7 +606,7 @@ class GoogleDriveDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         download_info = [{'resource_pk':1, 'owner':2},{'resource_pk':2, 'owner':2}]
 
         mock_parser = mock.MagicMock()
-        content = '{"access_token": "foo"}' # a json-format string
+        content = b'{"access_token": "foo"}' # a json-format string
         mock_parser.request.return_value = (None, content)
         mock_httplib.Http.return_value = mock_parser
 
@@ -633,10 +639,13 @@ class GoogleDriveDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         settings.CONFIG_PARAMS['drive_client_id'] = client_id
         settings.CONFIG_PARAMS['drive_secret'] = secret
 
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
         headers={'content-type':'application/x-www-form-urlencoded'}
         expected_params = urllib.parse.urlencode({
                 'code':code,
-                'redirect_uri': callback_url,
+                'redirect_uri': full_callback_url,
                 'client_id': client_id,
                 'client_secret': secret,
                 'grant_type':'authorization_code'

@@ -2,14 +2,28 @@ from configparser import ConfigParser
 
 def read_config(config_filepath, additional_sections=[]):
 
-    cfg = ConfigParser()
-    cfg.read(config_filepath)
-    
+    config = ConfigParser()
+    config.read(config_filepath)
+
     config_dict = {}
 
-    # read the default params:
-    for key in cfg['DEFAULT']:
-        config_dict[key] =  cfg['DEFAULT'][key]
+    # read the default section:
+    for key in config[config.default_section]:
+        config_dict[key] =  config[config.default_section][key]
+
+    for section_name in additional_sections:
+        if section_name in config:
+            d1 = {}
+            section = config[section_name]
+            for key in section:
+                config_dict[key] = section[key]
+        else:
+            raise configparser.NoSectionError()
+
+    return config_dict
+
+def read_general_config(config_filepath, additional_sections=[]):
+    config_dict = read_config(config_filepath, additional_sections)
 
     # Based on the choice for the compute environment, read those params also:
     try:
@@ -17,18 +31,6 @@ def read_config(config_filepath, additional_sections=[]):
     except KeyError as ex:
         raise Exception('Your configuration file needs to define a variable named %s which indicates the cloud provider' % ex)
 
-    try:
-        section = cfg[compute_env]
-    except KeyError as ex:
-        raise Exception('''
-            Your configuration file needs to declare section named %s which 
-            provides the required parameters for your selected compute environment.''' % ex)
-    for key in section:
-            config_dict[key] = section[key]
-
-    for section_name in  additional_sections:
-        section = cfg[section_name]
-        for key in section:
-            config_dict[key] = section[key]        
+    config_dict.update(read_config(config_filepath, [compute_env,]))
 
     return config_dict

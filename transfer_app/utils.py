@@ -7,7 +7,7 @@ from transfer_app.models import Resource, Transfer, TransferCoordinator
 import transfer_app.launchers as _launchers
 
 
-def load_config(config_filepath, config_keys=None):
+def load_config(config_filepath, config_keys=[]):
     '''
     config_filepath is the path to a config/ini file
     config_key is the name of a section in that file
@@ -16,6 +16,9 @@ def load_config(config_filepath, config_keys=None):
     config = configparser.ConfigParser()
     config.read(config_filepath)
     d = {}
+    for key in config[config.default_section]:
+        d[key] =  config[config.default_section][key]
+
     for config_key in config_keys:
         if config_key in config:
             d1 = {}
