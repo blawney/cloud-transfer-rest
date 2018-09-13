@@ -45,8 +45,11 @@ urlpatterns = [
     re_path(r'^oauth-dev/dropbox-callback/$', DropboxDownloader.finish_authentication_and_start_download, name='drive_token_callback_test'),
     re_path(r'^oauth-dev/drive/$', views.test_drive, name='drive_oauth-test'),
     re_path(r'^oauth-dev/drive-callback/$', DriveDownloader.finish_authentication_and_start_download, name='drive_token_callback_test'),
-    re_path(r'^oauth-dev/test/dummy/$', live_oauth2_tests.dropbox_code_exchange_test),
-    re_path(r'^oauth-dev/test/dropbox-callback/$', live_oauth2_tests.dropbox_token_exchange_test)
+    re_path(r'^oauth-dev/test/$', live_oauth2_tests.live_test),
+    re_path(r'^oauth-dev/test/dropbox/$', live_oauth2_tests.dropbox_code_exchange_test, name='live_test_dropbox'),
+    re_path(r'^oauth-dev/test/dropbox-callback/$', live_oauth2_tests.dropbox_token_exchange_test),
+    re_path(r'^oauth-dev/test/drive/$', live_oauth2_tests.drive_code_exchange_test, name='live_test_drive'),
+    re_path(r'^oauth-dev/test/drive-callback/$', live_oauth2_tests.drive_token_exchange_test)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

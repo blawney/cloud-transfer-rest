@@ -257,7 +257,6 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         for item in expected_dict:
             item['originator'] = user_pk
         response = uploaders.DropboxUploader.check_format(upload_info, user_pk)
-        print(response)
         self.assertEqual(response, expected_dict)
 
     def test_dropbox_uploader_on_google_params(self):
@@ -659,7 +658,6 @@ class DriveGoogleUploadInitTestCase(TestCase):
                         'size_in_bytes': filesize})
 
         upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
-        print(upload_info)
         
         uploader = uploader_cls(upload_info)
         uploader.config_params['disk_size_factor'] = 3
@@ -671,7 +669,6 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertEqual(1, m.go.call_count)
 
         call_arg = m.go.call_args
-        print(call_arg)
         disk_size_in_gb = call_arg[0][0]['disks'][0]['initializeParams']['diskSizeGb']
 
         expected_size = int(filesize/1e9 * uploader.config_params['disk_size_factor'])

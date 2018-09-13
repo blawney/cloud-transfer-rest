@@ -33,14 +33,10 @@ import transfer_app.downloaders as _downloaders
 
 
 def test_dropbox(request):
-    #context = {'msg': 'hello, world'}
-    #return render(request, 'transfer_app/dummy.html', context)
-    print(settings.CONFIG_PARAMS)
     downloader_cls = _downloaders.get_downloader(settings.DROPBOX)
     return downloader_cls.authenticate(request)
 
 def test_drive(request):
-    print(settings.CONFIG_PARAMS)
     downloader_cls = _downloaders.get_downloader(settings.GOOGLE_DRIVE)
     return downloader_cls.authenticate(request)
 
@@ -390,8 +386,6 @@ class InitDownload(generics.CreateAPIView):
             raise exceptions.RequestError(ex.message)
 
         except Exception as ex:
-            print('CAUGHT EX!')
-            print(ex)
             response = exception_handler(ex, None)
 
         return Response({'message': 'thanks'})

@@ -31,8 +31,6 @@ class Downloader(object):
 
     @classmethod
     def get_config(cls, config_filepath):
-        print(config_filepath)
-        print(cls.config_keys)
         return utils.load_config(config_filepath, cls.config_keys)
 
     @classmethod
@@ -194,8 +192,6 @@ class DropboxDownloader(Downloader):
             for item in download_info:
                 item['access_token'] = access_token
 
-            print('Token: %s' % access_token)
-
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
             return HttpResponse('OK')
@@ -266,7 +262,6 @@ class DriveDownloader(Downloader):
             })
             headers={'content-type':'application/x-www-form-urlencoded'}
             resp, content = parser.request(settings.CONFIG_PARAMS['drive_token_endpoint'], method = 'POST', body = params, headers = headers)
-            print(content)
             c = json.loads(content.decode('utf-8'))
             try:
                 access_token = c['access_token']
@@ -286,7 +281,7 @@ class DriveDownloader(Downloader):
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
 
-            return HttpResponse('')
+            return HttpResponse('OK')
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -392,7 +387,6 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        print(custom_config)
         disk_size_factor = float(custom_config['disk_size_factor'])
         min_disk_size = int(float(custom_config['min_disk_size']))
 
@@ -458,7 +452,6 @@ class GoogleDriveDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        print(custom_config)
         disk_size_factor = float(custom_config['disk_size_factor'])
         min_disk_size = int(float(custom_config['min_disk_size']))
 

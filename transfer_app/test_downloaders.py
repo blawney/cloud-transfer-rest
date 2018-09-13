@@ -266,7 +266,6 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         This test takes a properly formatted request and checks that the database objects have been properly
         created.  
         '''
-        print(settings.CONFIG_PARAMS)
         downloader_cls = downloaders.get_downloader(self.destination)
         
         # prep the download info as is usually performed:
