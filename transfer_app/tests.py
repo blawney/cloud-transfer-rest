@@ -1194,30 +1194,6 @@ class CompletionMarkingTestCase(TestCase):
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
         d['transfer_pk'] = 100 # an invalid pk
-        d['coordinator_pk'] = 1
-        d['success'] = True
-
-        client = APIClient()
-        url = reverse('transfer-complete')
-        response = client.post(url, d, format='json')
-        self.assertEqual(response.status_code, 400)
-
-    def test_incorrect_coordinator_pk_on_completion(self):
-        '''
-        This tests where an incorrect pk is given for the transferCoordinator
-        '''
-        # query the database and get the TransferCoordinator and its Transfer instances:
-        tc = TransferCoordinator.objects.get(pk=1)
-        transfers = Transfer.objects.filter(coordinator = tc)
-
-        d = {}
-        token = settings.CONFIG_PARAMS['token']
-        obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
-        enc_token = obj.encrypt(token)
-        b64_str = base64.encodestring(enc_token)
-        d['token'] = b64_str
-        d['transfer_pk'] = 1
-        d['coordinator_pk'] = 100 # an invalid pk
         d['success'] = True
 
         client = APIClient()
@@ -1239,8 +1215,7 @@ class CompletionMarkingTestCase(TestCase):
         enc_token = obj.encrypt(token)
         b64_str = base64.encodestring(enc_token)
         d['token'] = b64_str
-        d['transfer_pk'] = 1
-        # note: missing the coordinator_pk key
+        # note: missing the transfer_pk key
         d['success'] = True
 
         client = APIClient()

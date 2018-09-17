@@ -310,7 +310,6 @@ class TransferComplete(APIView):
                 # we can trust the content since it contained the proper token
                 try:
                     transfer_pk = data['transfer_pk']
-                    coordinator_pk = data['coordinator_pk']
                     success = data['success']
                 except KeyError as ex:
                     raise exceptions.RequestError('The request did not have the correct formatting.')  
@@ -323,7 +322,7 @@ class TransferComplete(APIView):
 
                     # now check if all the Transfers belonging to this TransferCoordinator are complete:
                     try:
-                        tc = TransferCoordinator.objects.get(pk=coordinator_pk)
+                        tc = transfer_obj.coordinator
                     except ObjectDoesNotExist as ex:
                         raise exceptions.RequestError('TransferCoordinator with pk=%d did not exist' % coordinator_pk)
                     all_transfers = Transfer.objects.filter(coordinator = tc)
