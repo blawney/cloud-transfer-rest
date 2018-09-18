@@ -31,6 +31,7 @@ class Downloader(object):
 
     @classmethod
     def get_config(cls, config_filepath):
+        print(cls.config_keys)
         return utils.load_config(config_filepath, cls.config_keys)
 
     @classmethod
@@ -132,7 +133,7 @@ class DropboxDownloader(Downloader):
 
     @classmethod
     def authenticate(cls, config_filepath, request):
-        config_params = super().get_config(config_filepath)
+        #config_params = super().get_config(config_filepath)
 
         code_request_uri = settings.CONFIG_PARAMS['dropbox_auth_endpoint']
         response_type = 'code'
@@ -216,7 +217,7 @@ class DriveDownloader(Downloader):
 
     @classmethod
     def authenticate(cls, config_filepath, request):
-        config_params = super().get_config(config_filepath)
+        #config_params = super().get_config(config_filepath)
 
         code_request_uri = settings.CONFIG_PARAMS['drive_auth_endpoint']
         response_type = 'code'
@@ -295,7 +296,12 @@ class EnvironmentSpecificDownloader(object):
         #instantiate the wrapped classes:
         self.downloader = self.downloader_cls(download_data)
         self.launcher = self.launcher_cls()
-        self.config_params = utils.load_config(self.config_file, self.config_key_list)
+
+        # get the config params for the downloader:
+        downloader_cfg = self.downloader_cls.get_config(self.config_file)
+        additional_cfg = utils.load_config(self.config_file, self.config_key_list)
+        downloader_cfg.update(additional_cfg)
+        self.config_params = downloader_cfg
 
     @classmethod
     def authenticate(cls, request):
@@ -387,6 +393,9 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
+        print('*'*50)
+        print(custom_config)
+        print('*'*50)
         disk_size_factor = float(custom_config['disk_size_factor'])
         min_disk_size = int(float(custom_config['min_disk_size']))
 
@@ -428,14 +437,15 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
 
             # now do the other metadata commands
             metadata_list = []
-            metadata_list.append({'key':'startup-script-url', 'value':startup_script_url})
             metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
             metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
             metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
             metadata_list.append({'key':'access_token', 'value':item['access_token']}) # the Dropbox access token
             metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
-            metadata_list.append({'key':'google_project', 'value':settings.CONFIG_PARAMS['google_project_id']})
+            metadata_list.append({'key':'google_project_id', 'value':settings.CONFIG_PARAMS['google_project_id']})
             metadata_list.append({'key': 'resource_path', 'value': item['path']})
+            metadata_list.append({'key': 'callback_url', 'value': full_callback_url})
+            metadata_list.append({'key': 'dropbox_destination_folderpath', 'value': custom_config['dropbox_destination_folderpath']})
 
             config['metadata']['items'] = metadata_list
             self.launcher.go(config)
