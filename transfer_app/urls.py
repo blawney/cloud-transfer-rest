@@ -36,6 +36,10 @@ urlpatterns = [
     re_path(r'^transfers/batch/(?P<pk>[0-9]+)/$', views.BatchDetail.as_view(), name='batch-detail'),
     re_path(r'^transfers/batch/user/(?P<user_pk>[0-9]+)/$', views.UserBatchList.as_view(), name='user-batch-list'),
 
+]
+urlpatterns = format_suffix_patterns(urlpatterns)
+
+urlpatterns.extend([
     # endpoints for communicating from worker machines:
     re_path(r'^transfers/complete/$', views.TransferComplete.as_view(), name='transfer-complete'),
 
@@ -48,11 +52,16 @@ urlpatterns = [
     #re_path(r'^oauth-dev/drive-callback/$', DriveDownloader.finish_authentication_and_start_download, name='drive_token_callback_test'),
 
     re_path(r'^oauth-dev/test/$', live_oauth2_tests.live_test),
-    re_path(r'^oauth-dev/test/dropbox/$', live_oauth2_tests.dropbox_code_exchange_test, name='live_test_dropbox'),
+    re_path(r'^oauth-dev/test/dropbox/$', live_oauth2_tests.dropbox_code_exchange_test, name='live_oauth_test_dropbox'),
     re_path(r'^oauth-dev/test/dropbox-callback/$', live_oauth2_tests.dropbox_token_exchange_test),
-    re_path(r'^oauth-dev/test/drive/$', live_oauth2_tests.drive_code_exchange_test, name='live_test_drive'),
-    re_path(r'^oauth-dev/test/drive-callback/$', live_oauth2_tests.drive_token_exchange_test)
-]
+    re_path(r'^oauth-dev/test/drive/$', live_oauth2_tests.drive_code_exchange_test, name='live_oauth_test_drive'),
+    re_path(r'^oauth-dev/test/drive-callback/$', live_oauth2_tests.drive_token_exchange_test),
 
-urlpatterns = format_suffix_patterns(urlpatterns)
+    re_path(r'^oauth-dev/transfer-test/$', live_transfer_tests.live_transfer_test),
+    re_path(r'^oauth-dev/transfer-test/dropbox/$', live_transfer_tests.dropbox_code_exchange_test, name='live_transfer_test_dropbox'),
+    re_path(r'^oauth-dev/transfer-test/dropbox-callback/$', live_transfer_tests.dropbox_token_exchange_test),
+    re_path(r'^oauth-dev/transfer-test/drive/$', live_transfer_tests.drive_code_exchange_test, name='live_transfer_test_drive'),
+    re_path(r'^oauth-dev/transfer-test/drive-callback/$', live_transfer_tests.drive_token_exchange_test)
+])
+
 

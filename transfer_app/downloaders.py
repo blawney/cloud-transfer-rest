@@ -454,6 +454,7 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
             cmd = self._prep_single_download(custom_config, i, item)
             cmd += ' --container-arg="-dropbox" --container-arg="%s"' % item['access_token']
             cmd += ' --container-arg="-d" --container-arg="%s"' % custom_config['dropbox_destination_folderpath']
+            print('gcloud cmd: %s' % cmd)
             self.launcher.go(cmd)
 
 
