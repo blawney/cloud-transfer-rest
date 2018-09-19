@@ -449,9 +449,6 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        print('x'*40)
-        print(custom_config)
-        print('x'*40)
 
         for i, item in enumerate(self.downloader.download_data):
             cmd = self._prep_single_download(custom_config, i, item)
@@ -471,9 +468,6 @@ class GoogleDriveDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        print('*'*40)
-        print(custom_config)
-        print('*'*40)
         for i, item in enumerate(self.downloader.download_data):
 
             cmd = self._prep_single_download(custom_config, i, item)

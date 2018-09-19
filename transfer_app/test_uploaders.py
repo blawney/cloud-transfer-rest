@@ -259,13 +259,13 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         response = uploaders.DropboxUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_dict)
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_dropbox_uploader_on_google_params(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_dropbox_uploader_on_google_params(self):
         '''
         This test takes a properly formatted request and checks that the database objects have been properly
         created.  
         '''
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
@@ -300,9 +300,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertFalse(all_tc[0].completed) # the transfer coord is also not completed
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_dropbox_uploader_on_google_params_single(self, mock_environ):
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_dropbox_uploader_on_google_params_single(self):
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
@@ -329,9 +329,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertFalse(all_tc[0].completed) # the transfer coord is also not completed
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_dropbox_uploader_on_google_disk_sizing(self, mock_environ):
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_dropbox_uploader_on_google_disk_sizing(self):
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
@@ -605,13 +605,13 @@ class DriveGoogleUploadInitTestCase(TestCase):
         response = uploaders.DriveUploader.check_format(upload_info, user_pk)
         self.assertEqual(response, expected_dict)
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_drive_uploader_on_google_params(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_drive_uploader_on_google_params(self):
         '''
         This test takes a properly formatted request and checks that the database objects have been properly
         created.  
         '''
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.GOOGLE_DRIVE
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDriveUploader)
@@ -647,9 +647,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertFalse(all_tc[0].completed) # the transfer coord is also not completed
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_drive_uploader_on_google_params_single(self, mock_environ):
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_drive_uploader_on_google_params_single(self):
+        
         source = settings.GOOGLE_DRIVE
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDriveUploader)
@@ -675,10 +675,10 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertFalse(all_tc[0].completed) # the transfer coord is also not completed
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_drive_uploader_on_google_disk_sizing(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_drive_uploader_on_google_disk_sizing(self):
 
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.GOOGLE_DRIVE
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDriveUploader)
@@ -741,13 +741,13 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         with self.assertRaises(exceptions.FilenameException):
             upload_info, error_messages = uploader_cls.check_format(upload_info, 2)
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_warn_of_conflict_case1(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_warn_of_conflict_case1(self):
         '''
         Here, we pretend that a user has previously started an upload that is still going.
         Then they try to upload that same file again (and also add a new one).  Here, we check that we block appropriately.
         '''
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
@@ -798,13 +798,13 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertTrue(all([not tc.completed for tc in all_tc])) # no transfer_coordinators are complete
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_warn_of_conflict_case2(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_warn_of_conflict_case2(self):
         '''
         Here, we pretend that a user has previously started an upload that is still going.
         Then they try to upload the same files again
         '''
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)
@@ -854,13 +854,13 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         self.assertTrue(all([not x.completed for x in all_transfers])) # no transfer is complete
         self.assertTrue(all([not tc.completed for tc in all_tc])) # no transfer_coordinators are complete
 
-    @mock.patch('transfer_app.uploaders.os.environ')
-    def test_warn_of_conflict_case3(self, mock_environ):
+    @mock.patch.dict('transfer_app.uploaders.os.environ', {'GCLOUD': '/mock/bin/gcloud'})
+    def test_warn_of_conflict_case3(self):
         '''
         Here, we initiate two transfers.  We mock one being completed, and THEN the user uploads another to the same
         as an overwrite.  We want to allow this.
         '''
-        mock_environ['GCLOUD'] = '/mock/bin/gcloud'
+        
         source = settings.DROPBOX
         uploader_cls = uploaders.get_uploader(source)
         self.assertEqual(uploader_cls, uploaders.GoogleDropboxUploader)

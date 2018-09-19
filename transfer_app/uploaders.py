@@ -304,9 +304,7 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
             # more info: https://cloud.google.com/storage/docs/naming
             min_length = 1
             max_length = 1024
-            print(full_item_name)
             bytes = len(full_item_name.encode('utf-8'))
-            print(bytes)
             if bytes < min_length:
                 error_msg = 'The file with name %s is too short.  Please change it and try again.' % item_name
                 raise exceptions.FilenameException(error_msg)
