@@ -3,12 +3,14 @@ import unittest.mock as mock
 from django.test import TestCase
 from django.conf import settings
 from django.shortcuts import render
-
+from django.contrib.auth.decorators import login_required
 import transfer_app.downloaders as downloaders
 
+@login_required
 def live_test(request):
-    return render(request, 'transfer_app/live_test.html', {})
+    return render(request, 'transfer_app/live_oauth2_test.html', {})
 
+@login_required
 def dropbox_code_exchange_test(request):
     test = LiveTest()
     return test.dropbox_code_exchange_test(request)
@@ -17,6 +19,7 @@ def dropbox_token_exchange_test(request):
     test = LiveTest()
     return test.dropbox_token_exchange_test(request)
 
+@login_required
 def drive_code_exchange_test(request):
     test = LiveTest()
     return test.drive_code_exchange_test(request)

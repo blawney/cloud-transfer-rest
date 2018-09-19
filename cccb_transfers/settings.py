@@ -142,7 +142,7 @@ SITE_ID = 1
 
 
 # some identifiers for consistent reference:
-GOOGLE = 'GOOGLE'
+GOOGLE = 'google'
 AWS = 'aws'
 GOOGLE_DRIVE = 'google_drive'
 DROPBOX = 'dropbox'
@@ -155,8 +155,9 @@ import cccb_transfers.utils as utils
 additional_sections = [GOOGLE_DRIVE, DROPBOX]
 CONFIG_DIR = os.path.join(BASE_DIR, 'config')
 CONFIG_PARAMS = utils.read_general_config(os.path.join(CONFIG_DIR, 'general.cfg'), additional_sections)
-LIVE_TEST_CONFIG_PARAMS = utils.read_config(os.path.join(CONFIG_DIR, 'live_tests.cfg'), additional_sections)
 
+additional_sections = [GOOGLE_DRIVE, DROPBOX, GOOGLE]
+LIVE_TEST_CONFIG_PARAMS = utils.read_config(os.path.join(CONFIG_DIR, 'live_tests.cfg'), additional_sections)
 
 ###################
 # Configuration for upload providers and compute environments:

@@ -1,8 +1,8 @@
-from configparser import ConfigParser
+import configparser
 
 def read_config(config_filepath, additional_sections=[]):
 
-    config = ConfigParser()
+    config = configparser.ConfigParser()
     config.read(config_filepath)
 
     config_dict = {}
@@ -18,7 +18,7 @@ def read_config(config_filepath, additional_sections=[]):
             for key in section:
                 config_dict[key] = section[key]
         else:
-            raise configparser.NoSectionError()
+            raise configparser.NoSectionError(section_name)
 
     return config_dict
 
