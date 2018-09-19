@@ -31,7 +31,6 @@ class Downloader(object):
 
     @classmethod
     def get_config(cls, config_filepath):
-        print(cls.config_keys)
         return utils.load_config(config_filepath, cls.config_keys)
 
     @classmethod
@@ -319,6 +318,17 @@ class EnvironmentSpecificDownloader(object):
 
 class GoogleEnvironmentDownloader(EnvironmentSpecificDownloader, GoogleBase):
 
+
+    gcloud_cmd_template = '''{gcloud} beta compute --project={google_project_id} instances \
+                             create-with-container {instance_name} \
+                             --zone={google_zone} \
+                             --scopes={scopes} \
+                             --machine-type={machine_type} \
+                             --boot-disk-size={disk_size_gb}GB \
+                             --metadata=google-logging-enabled=true \
+                             --container-image={docker_image} \
+                             --no-restart-on-failure --container-restart-policy=never
+                           '''
     @classmethod
     def check_format(cls, download_info, user_pk):
         '''
@@ -377,6 +387,52 @@ class GoogleEnvironmentDownloader(EnvironmentSpecificDownloader, GoogleBase):
         self.config_key_list.extend(GoogleBase.config_keys)
         super().__init__(download_data)
 
+    def _prep_single_download(self, custom_config, index, item):
+
+        disk_size_factor = float(custom_config['disk_size_factor'])
+        min_disk_size = int(float(custom_config['min_disk_size']))
+
+        # construct a callback so the worker can communicate back to the application server:
+        callback_url = reverse('transfer-complete')
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+
+        docker_image = custom_config['docker_image']
+
+        instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
+            datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
+            index
+        )
+
+        # approx size in Gb so we can size the VM appropriately
+        size_in_gb = item['size_in_bytes']/1e9
+        target_disk_size = int(disk_size_factor*size_in_gb)
+        if target_disk_size < min_disk_size:
+            target_disk_size = min_disk_size
+
+        # fill out the template command:
+        cmd = self.gcloud_cmd_template.format(gcloud=os.environ['GCLOUD'],
+            google_project_id = settings.CONFIG_PARAMS['google_project_id'],
+            google_zone = settings.CONFIG_PARAMS['google_zone'],
+            instance_name = instance_name,
+            scopes = custom_config['scopes'],
+            machine_type = custom_config['machine_type'],
+            disk_size_gb = target_disk_size,
+            docker_image = custom_config['docker_image']
+        )
+
+        # Since these are passed via the gcloud command, the arg strings are a bit strange
+        # These should be common to all google-environment activity.  
+        # Args specific to the particular downloader should be handled in the subclass
+        cmd += ' --container-arg="-token" --container-arg="%s"' % settings.CONFIG_PARAMS['token']
+        cmd += ' --container-arg="-key" --container-arg="%s"' % settings.CONFIG_PARAMS['enc_key']
+        cmd += ' --container-arg="-pk" --container-arg="%s"' % item['transfer_pk']
+        cmd += ' --container-arg="-url" --container-arg="%s"' % full_callback_url
+        cmd += ' --container-arg="-path" --container-arg="%s"' % item['path']
+        cmd += ' --container-arg="-proj" --container-arg="%s"' % settings.CONFIG_PARAMS['google_project_id']
+        cmd += ' --container-arg="-zone" --container-arg="%s"' % settings.CONFIG_PARAMS['google_zone']
+        return cmd
 
 class AWSEnvironmentDownloader(EnvironmentSpecificDownloader, AWSBase):
     pass
@@ -393,62 +449,15 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        print('*'*50)
+        print('x'*40)
         print(custom_config)
-        print('*'*50)
-        disk_size_factor = float(custom_config['disk_size_factor'])
-        min_disk_size = int(float(custom_config['min_disk_size']))
-
-        # construct a callback so the worker can communicate back to the application server:
-        callback_url = reverse('transfer-complete')
-        current_site = Site.objects.get_current()
-        domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, callback_url)
-
-        # need to specify the full path to the startup script
-        startup_script_url = os.path.join(settings.CONFIG_PARAMS['storage_base'], custom_config['startup_script_path'])
+        print('x'*40)
 
         for i, item in enumerate(self.downloader.download_data):
-
-            config = copy.deepcopy(self.base_config)
-
-            instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
-                datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
-                i                
-            )
-            config['name'] =  instance_name
-
-            config['machineType'] = custom_config['machine_type']
-
-            # approx size in Gb so we can size the VM appropriately
-            size_in_gb = item['size_in_bytes']/1e9
-            target_disk_size = int(disk_size_factor*size_in_gb)
-            if target_disk_size < min_disk_size:
-                target_disk_size = min_disk_size
-            disk_config = {
-                'boot': True,
-                'autoDelete': True,
-                'initializeParams':{
-                    'sourceImage': custom_config['source_disk_image'],
-                    'diskSizeGb': target_disk_size
-                }
-            }
-            config['disks'].append(disk_config)
-
-            # now do the other metadata commands
-            metadata_list = []
-            metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
-            metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
-            metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
-            metadata_list.append({'key':'access_token', 'value':item['access_token']}) # the Dropbox access token
-            metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
-            metadata_list.append({'key':'google_project_id', 'value':settings.CONFIG_PARAMS['google_project_id']})
-            metadata_list.append({'key': 'resource_path', 'value': item['path']})
-            metadata_list.append({'key': 'callback_url', 'value': full_callback_url})
-            metadata_list.append({'key': 'dropbox_destination_folderpath', 'value': custom_config['dropbox_destination_folderpath']})
-
-            config['metadata']['items'] = metadata_list
-            self.launcher.go(config)
+            cmd = self._prep_single_download(custom_config, i, item)
+            cmd += ' --container-arg="-dropbox" --container-arg="%s"' % item['access_token']
+            cmd += ' --container-arg="-d" --container-arg="%s"' % custom_config['dropbox_destination_folderpath']
+            self.launcher.go(cmd)
 
 
 class GoogleDriveDownloader(GoogleEnvironmentDownloader):
@@ -462,58 +471,15 @@ class GoogleDriveDownloader(GoogleEnvironmentDownloader):
     def config_and_start_downloads(self):
 
         custom_config = copy.deepcopy(self.config_params)
-        disk_size_factor = float(custom_config['disk_size_factor'])
-        min_disk_size = int(float(custom_config['min_disk_size']))
-
-        # construct a callback so the worker can communicate back to the application server:
-        callback_url = reverse('transfer-complete')
-        current_site = Site.objects.get_current()
-        domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, callback_url)
-
-        # need to specify the full path to the startup script
-        startup_script_url = os.path.join(settings.CONFIG_PARAMS['storage_base'], custom_config['startup_script_path'])
-
+        print('*'*40)
+        print(custom_config)
+        print('*'*40)
         for i, item in enumerate(self.downloader.download_data):
 
-            config = copy.deepcopy(self.base_config)
-
-            instance_name = '%s-%s-%s' % (custom_config['instance_name_prefix'], \
-                datetime.datetime.now().strftime('%m%d%y%H%M%S'), \
-                i                
-            )
-            config['name'] =  instance_name
-
-            config['machineType'] = custom_config['machine_type']
-
-            # approx size in Gb so we can size the VM appropriately
-            size_in_gb = item['size_in_bytes']/1e9
-            target_disk_size = int(disk_size_factor*size_in_gb)
-            if target_disk_size < min_disk_size:
-                target_disk_size = min_disk_size
-            disk_config = {
-                'boot': True,
-                'autoDelete': True,
-                'initializeParams':{
-                    'sourceImage': custom_config['source_disk_image'],
-                    'diskSizeGb': target_disk_size
-                }
-            }
-            config['disks'].append(disk_config)
-
-            # now do the other metadata commands
-            metadata_list = []
-            metadata_list.append({'key':'startup-script-url', 'value':startup_script_url})
-            metadata_list.append({'key':'transfer_pk', 'value':item['transfer_pk']})
-            metadata_list.append({'key':'token', 'value':settings.CONFIG_PARAMS['token']})
-            metadata_list.append({'key':'enc_key', 'value':settings.CONFIG_PARAMS['enc_key']})
-            metadata_list.append({'key':'access_token', 'value':item['access_token']}) # the Google access token
-            metadata_list.append({'key':'google_zone', 'value': settings.CONFIG_PARAMS['google_zone']})
-            metadata_list.append({'key':'google_project', 'value':settings.CONFIG_PARAMS['google_project_id']})
-            metadata_list.append({'key': 'resource_path', 'value': item['path']})
-
-            config['metadata']['items'] = metadata_list
-            self.launcher.go(config)
+            cmd = self._prep_single_download(custom_config, i, item)
+            cmd += ' --container-arg="-access_token" --container-arg="%s"' % item['access_token'] # the oauth2 access token
+            #TODO: more params?
+            self.launcher.go(cmd)
 
 
 class AWSDropboxDownloader(AWSEnvironmentDownloader):

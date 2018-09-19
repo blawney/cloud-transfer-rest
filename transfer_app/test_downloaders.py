@@ -260,12 +260,14 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         with self.assertRaises(MethodNotAllowed):
             downloader_cls.finish_authentication_and_start_download(mock_request)
 
-
-    def _test_dropbox_downloader_on_google_params(self):
+    @mock.patch('transfer_app.downloaders.os')
+    def _test_dropbox_downloader_on_google_params(self, mock_os):
         '''
         This test takes a properly formatted request and checks that the database objects have been properly
         created.  
         '''
+        mock_os.environ['GCLOUD'] = '/mock/bin/gcloud'
+
         downloader_cls = downloaders.get_downloader(self.destination)
         
         # prep the download info as is usually performed:
