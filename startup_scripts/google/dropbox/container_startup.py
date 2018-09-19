@@ -19,7 +19,7 @@ WORKING_DIR = '/workspace'
 DEFAULT_TIMEOUT = 60
 DEFAULT_CHUNK_SIZE = 100*1024*1024 # dropbox says <150MB per chunk
 HOSTNAME_REQUEST_URL = 'http://metadata/computeMetadata/v1/instance/hostname'
-
+GOOGLE_BUCKET_PREFIX = 'gs://'
 
 def create_logger():
 	"""
@@ -53,7 +53,8 @@ def notify_master(params, error=False):
 	base_url = params['callback_url']
 	headers = {'Content-Type': 'application/json'}
 	response = requests.post(base_url, headers=headers, data=d)
-	logging.info('response: %s' % response.read())
+	logging.info('Status code: %s' % response.status_code)
+	logging.info('Response text: %s' % response.text)
 
 
 def download_to_disk(params):
@@ -61,13 +62,16 @@ def download_to_disk(params):
 	Downloads the file from the bucket to the local disk.
 	'''
 	src = params['resource_path']
-	bucket_name = os.path.dirname(src)
-	basename = os.path.basename(src)
+	src_without_prefix = src[len(GOOGLE_BUCKET_PREFIX):] # remove the prefix
+	contents = src_without_prefix.split('/')
+	bucket_name = contents[0]
+	object_name = '/'.join(contents[1:])
+	basename = os.path.basename(object_name)
 	local_path = os.path.join(WORKING_DIR, basename)
 
 	storage_client = storage.Client()
 	source_bucket = storage_client.get_bucket(bucket_name)
-	source_blob = source_bucket.blob(basename)
+	source_blob = source_bucket.blob(object_name)
 	source_blob.download_to_filename(local_path)
 	return local_path
 
@@ -80,8 +84,8 @@ def send_to_dropbox(local_filepath, params):
 	client = dropbox.dropbox.Dropbox(token, timeout=DEFAULT_TIMEOUT)
 	file_size = os.path.getsize(local_filepath)
 
-	stream = open(local_filepath)
-	path_in_dropbox = '%s/%s' % (params['dropbox_destination_folderpath'], os.path.basename(filename))
+	stream = open(local_filepath, 'rb')
+	path_in_dropbox = '%s/%s' % (params['dropbox_destination_folderpath'], os.path.basename(local_filepath))
 	if file_size <= DEFAULT_CHUNK_SIZE:
 		client.files_upload(stream.read(), path_in_dropbox)
 	else:
