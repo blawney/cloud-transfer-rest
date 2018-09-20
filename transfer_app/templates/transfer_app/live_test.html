@@ -21,13 +21,23 @@
 	<body>
         <div id="main-container" class="container">
             <div class="row">
-                <button id="test-dropbox" class="btn btn-primary">
+                <button id="test-dropbox-auth" class="btn btn-primary">
                     Test Dropbox Authentication
                 </button>
             </div>
             <div class="row padded-row">
-                <button id="test-drive" class="btn btn-primary">
+                <button id="test-drive-auth" class="btn btn-primary">
                     Test Drive Authentication
+                </button>
+            </div>
+            <div class="row">
+                <button id="test-dropbox-transfer" class="btn btn-primary">
+                    Test Dropbox Transfer
+                </button>
+            </div>
+            <div class="row padded-row">
+                <button id="test-drive-transfer" class="btn btn-primary">
+                    Test Drive Transfer
                 </button>
             </div>
         </div>
@@ -40,13 +50,23 @@
                 window.open("https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ url, "newWindow", "width=800,height=600");
            }
 
-            $('#test-dropbox').click(function(e){
+            $('#test-dropbox-auth').click(function(e){
                 url = "{%  url 'live_oauth_test_dropbox' %}";
                 go(url);
             })
 
-            $('#test-drive').click(function(e){
+            $('#test-drive-auth').click(function(e){
                 url = "{%  url 'live_oauth_test_drive' %}";
+		go(url);
+            })
+
+            $('#test-dropbox-transfer').click(function(e){
+                url = "{%  url 'live_transfer_test_dropbox' %}";
+                go(url);
+            })
+
+            $('#test-drive-transfer').click(function(e){
+                url = "{%  url 'live_transfer_test_drive' %}";
 		go(url);
             })
 
