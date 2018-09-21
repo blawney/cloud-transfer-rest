@@ -144,7 +144,7 @@ class DropboxDownloader(Downloader):
         # construct the callback URL for Dropbox to use:
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+        code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
         url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&force_reauthentication=true&state={state}".format(
             code_request_uri = code_request_uri,
             response_type = response_type,
@@ -156,8 +156,9 @@ class DropboxDownloader(Downloader):
 
     @classmethod
     def finish_authentication_and_start_download(cls, request):
-
+        print('in finish auth')
         if request.method == 'GET':
+            print('method was get')
             parser = httplib2.Http()
             if 'error' in request.GET or 'code' not in request.GET:
                 raise exceptions.RequestError('There was an error on the callback')
@@ -166,7 +167,7 @@ class DropboxDownloader(Downloader):
 	
             current_site = Site.objects.get_current()
             domain = current_site.domain
-            code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+            code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
             params = urllib.parse.urlencode({
                 'code':request.GET['code'],
                 'redirect_uri':code_callback_url,
@@ -175,6 +176,7 @@ class DropboxDownloader(Downloader):
                 'grant_type':'authorization_code'
             })
             headers={'content-type':'application/x-www-form-urlencoded'}
+            print(params)
             resp, content = parser.request(settings.CONFIG_PARAMS['dropbox_token_endpoint'], method = 'POST', body = params, headers = headers)
             c = json.loads(content.decode('utf-8'))
             try:
@@ -192,7 +194,9 @@ class DropboxDownloader(Downloader):
             for item in download_info:
                 item['access_token'] = access_token
 
+            print(access_token)
             # call async method:
+            print('before task')
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
             return HttpResponse('OK')
         else:
@@ -327,8 +331,7 @@ class GoogleEnvironmentDownloader(EnvironmentSpecificDownloader, GoogleBase):
                              --boot-disk-size={disk_size_gb}GB \
                              --metadata=google-logging-enabled=true \
                              --container-image={docker_image} \
-                             --no-restart-on-failure --container-restart-policy=never
-                           '''
+                             --no-restart-on-failure --container-restart-policy=never'''
     @classmethod
     def check_format(cls, download_info, user_pk):
         '''
@@ -396,7 +399,7 @@ class GoogleEnvironmentDownloader(EnvironmentSpecificDownloader, GoogleBase):
         callback_url = reverse('transfer-complete')
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+        full_callback_url = 'https://%s%s' % (domain, callback_url)
 
         docker_image = custom_config['docker_image']
 

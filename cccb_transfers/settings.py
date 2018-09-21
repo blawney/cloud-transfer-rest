@@ -25,7 +25,7 @@ SECRET_KEY = '1+ctigmygs**gkf5b#2g*a3ff)h$8tfkb2%oq&q@d41e&et6=p'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cccb-delivery.tm4.org', ]
+ALLOWED_HOSTS = ['dev.tm4.org', ]
 
 
 # Application definition
@@ -58,7 +58,7 @@ ROOT_URLCONF = 'cccb_transfers.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'),],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -183,3 +183,12 @@ DOWNLOADER_CONFIG = {
         GOOGLE_DRIVE
     ]
 }
+
+LOGIN_URL = '/login/'
+
+#Celery settings:
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

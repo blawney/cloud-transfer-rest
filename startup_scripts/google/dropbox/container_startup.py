@@ -51,8 +51,7 @@ def notify_master(params, error=False):
 	d['transfer_pk'] = params['transfer_pk']
 	d['success'] = 0 if error else 1
 	base_url = params['callback_url']
-	headers = {'Content-Type': 'application/json'}
-	response = requests.post(base_url, headers=headers, data=d)
+	response = requests.post(base_url, data=d)
 	logging.info('Status code: %s' % response.status_code)
 	logging.info('Response text: %s' % response.text)
 

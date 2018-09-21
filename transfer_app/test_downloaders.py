@@ -418,14 +418,14 @@ class GoogleDropboxDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         mock_request.session = {}
 
         settings.CONFIG_PARAMS['dropbox_auth_endpoint'] = 'https://fake-auth.com/oauth2/authorize'
-        settings.CONFIG_PARAMS['dropbox_callback'] = 'dropbox/callback/'
+        settings.CONFIG_PARAMS['dropbox_callback'] = '/dropbox/callback/'
         settings.CONFIG_PARAMS['dropbox_client_id'] = 'mockclient'
         response_type = 'code'
         
         # construct the callback URL for Dropbox to use:
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+        code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
 
         expected_url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&force_reauthentication=true&state={state}".format(
             code_request_uri = settings.CONFIG_PARAMS['dropbox_auth_endpoint'],
@@ -470,19 +470,19 @@ class GoogleDropboxDownloadTestCase(GoogleEnvironmentDownloadTestCase):
 
         token_url = 'https://fake-auth.com/oauth2/token'
 
-        callback_url = 'dropbox/callback/'
+        callback_url = '/dropbox/callback/'
         client_id = 'mockclient'
         secret = 'somesecret'
         settings.CONFIG_PARAMS['dropbox_auth_endpoint'] = 'https://fake-auth.com/oauth2/authorize'
         settings.CONFIG_PARAMS['dropbox_token_endpoint'] = token_url
-        settings.CONFIG_PARAMS['dropbox_callback'] = 'dropbox/callback'
+        settings.CONFIG_PARAMS['dropbox_callback'] = callback_url
         settings.CONFIG_PARAMS['dropbox_client_id'] = client_id
         settings.CONFIG_PARAMS['dropbox_secret'] = secret
         headers={'content-type':'application/x-www-form-urlencoded'}
 
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
+        full_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['dropbox_callback'])
         expected_params = urllib.parse.urlencode({
                 'code':code,
                 'redirect_uri': full_callback_url,

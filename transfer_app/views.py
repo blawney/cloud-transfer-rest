@@ -306,7 +306,6 @@ class TransferComplete(APIView):
             obj=DES.new(settings.CONFIG_PARAMS['enc_key'], DES.MODE_ECB)
             decrypted_token = obj.decrypt(enc_token)
             if decrypted_token == expected_token.encode('ascii'):
-
                 # we can trust the content since it contained the proper token
                 try:
                     transfer_pk = data['transfer_pk']
