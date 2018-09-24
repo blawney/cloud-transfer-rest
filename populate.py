@@ -15,12 +15,11 @@ from transfer_app.models import Resource
 def populate():
     # read the live test config to create our dummy user and resource for live testing:
     params = settings.LIVE_TEST_CONFIG_PARAMS
-    print(params)
     user_model = get_user_model()
     try:
-        dummy_user = user_model.objects.create_user(username=params['dummy_username'], 
-            email=params['dummy_email'],
-            password=params['dummy_password']
+        test_user = user_model.objects.create_user(username=params['test_username'], 
+            email=params['test_email'],
+            password=params['test_password']
         )
     except django.db.utils.IntegrityError as ex:
         print('Could not create user.  Likely already exists.')
@@ -28,7 +27,7 @@ def populate():
 
     r = Resource(path=params['file_to_transfer'],
             size=params['file_size_in_bytes'],
-            owner=dummy_user
+            owner=test_user
     )
     r.save()
 
