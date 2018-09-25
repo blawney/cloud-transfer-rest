@@ -1,0 +1,8 @@
+httplib2
+Django
+djangorestframework
+django-filter
+gunicorn
+celery
+redis
+jinja2
