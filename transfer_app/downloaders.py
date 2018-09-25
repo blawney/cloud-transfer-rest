@@ -233,7 +233,7 @@ class DriveDownloader(Downloader):
         # construct the callback URL for Drive to use:
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+        code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
         url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&state={state}".format(
             code_request_uri = code_request_uri,
             response_type = response_type,
@@ -256,7 +256,7 @@ class DriveDownloader(Downloader):
 	
             current_site = Site.objects.get_current()
             domain = current_site.domain
-            code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+            code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
             params = urllib.parse.urlencode({
                 'code':request.GET['code'],
                 'redirect_uri':code_callback_url,
@@ -457,7 +457,6 @@ class GoogleDropboxDownloader(GoogleEnvironmentDownloader):
             cmd = self._prep_single_download(custom_config, i, item)
             cmd += ' --container-arg="-dropbox" --container-arg="%s"' % item['access_token']
             cmd += ' --container-arg="-d" --container-arg="%s"' % custom_config['dropbox_destination_folderpath']
-            print('gcloud cmd: %s' % cmd)
             self.launcher.go(cmd)
 
 
@@ -476,7 +475,6 @@ class GoogleDriveDownloader(GoogleEnvironmentDownloader):
 
             cmd = self._prep_single_download(custom_config, i, item)
             cmd += ' --container-arg="-access_token" --container-arg="%s"' % item['access_token'] # the oauth2 access token
-            #TODO: more params?
             self.launcher.go(cmd)
 
 
