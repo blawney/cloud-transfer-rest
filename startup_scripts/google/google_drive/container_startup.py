@@ -16,8 +16,6 @@ from googleapiclient.http import MediaFileUpload
 import google.oauth2.credentials
 
 WORKING_DIR = '/workspace'
-DEFAULT_TIMEOUT = 60
-DEFAULT_CHUNK_SIZE = 100*1024*1024 # dropbox says <150MB per chunk
 HOSTNAME_REQUEST_URL = 'http://metadata/computeMetadata/v1/instance/hostname'
 GOOGLE_BUCKET_PREFIX = 'gs://'
 MAX_FAILS = 10
@@ -28,7 +26,7 @@ def create_logger():
 	Creates a logfile
 	"""
 	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-	logfile = os.path.join(WORKING_DIR, str(timestamp)+".dropbox_transfer.log")
+	logfile = os.path.join(WORKING_DIR, str(timestamp)+".drive_transfer.log")
 	print('Create logfile at %s' % logfile)
 	logging.basicConfig(filename=logfile, level=logging.INFO, format="%(asctime)s:%(levelname)s:%(message)s")
 	return logfile
@@ -81,7 +79,7 @@ def make_request(drive_service, name, upload):
 	Create the request to google api.  Pulled out here
 	in case of errors in repeated requests needed.
 	'''
-	return request = drive_service.files().create(
+	return drive_service.files().create(
 		body={'name': name},
 		media_body=upload
 	)
@@ -157,7 +155,7 @@ def parse_args():
 	parser.add_argument("-pk", help="The primary key of the transfer", dest='transfer_pk', required=True)
 	parser.add_argument("-url", help="The callback URL for communicating with the main application", dest='callback_url', required=True)
 	parser.add_argument("-path", help="The source of the file that is being downloaded", dest='resource_path', required=True)
-	parser.add_argument("-drive_token", help="The access token for Drive API", dest='access_token', required=True)
+	parser.add_argument("-access_token", help="The access token for Drive API", dest='access_token', required=True)
 	parser.add_argument("-proj", help="Google project ID", dest='google_project_id', required=True)
 	parser.add_argument("-zone", help="Google project zone", dest='google_zone', required=True)
 	args = parser.parse_args()
@@ -180,7 +178,7 @@ if __name__ == '__main__':
 		logfile = create_logger()
 		params['logfile'] = logfile
 		local_filepath = download_to_disk(params)
-		send_to_dropbox(local_filepath, params)
+		send_to_drive(local_filepath, params)
 		notify_master(params)
 		kill_instance(params)
 	except Exception as ex:
