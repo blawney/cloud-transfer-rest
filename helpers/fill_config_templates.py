@@ -4,6 +4,7 @@ details in config and settings files as appropriate.
 '''
 
 import os
+import glob
 import sys
 import re
 from jinja2 import Environment, FileSystemLoader

@@ -10,6 +10,7 @@ from django.conf import settings
 django.setup()
 
 from django.contrib.auth import get_user_model
+from django.contrib.sites.models import Site
 
 import cccb_transfers.utils as utils
 from transfer_app.models import Resource
@@ -36,6 +37,17 @@ def populate():
 
     print('Done populating.')
 
+def edit_domain():
+    expected_site_id = settings.SITE_ID
+    site = Site.objects.get(pk=expected_site_id)
+    site.name = settings.ALLOWED_HOSTS[0]
+    site.domain = settings.ALLOWED_HOSTS[0]
+    site.save()
+
+
 if __name__ == '__main__':
-    print('Starting database population...')
+    print('Starting database population for live testing...')
     populate()
+
+    print('Editing database for your domain...')
+    edit_domain()
