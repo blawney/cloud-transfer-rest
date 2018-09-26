@@ -508,7 +508,7 @@ def get_downloader(destination):
             settings.DROPBOX : AWSDropboxDownloader,
         }
     }
-    environment = settings.CONFIG_PARAMS['compute_environment']
+    environment = settings.CONFIG_PARAMS['cloud_environment']
     try:
         return class_mapping[environment][destination]
     except KeyError as ex:

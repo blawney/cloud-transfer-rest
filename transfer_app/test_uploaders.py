@@ -17,22 +17,22 @@ class GeneralUploadInitTestCase(TestCase):
     def test_uploader_mod_returns_correct_uploader_implementation(self):
     
         # first try dropbox uploader on google:
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         source = settings.DROPBOX
         result_cls = uploaders.get_uploader(source)
         self.assertEqual(result_cls, uploaders.GoogleDropboxUploader)
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         source = settings.GOOGLE_DRIVE
         result_cls = uploaders.get_uploader(source)
         self.assertEqual(result_cls, uploaders.GoogleDriveUploader)
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.AWS
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.AWS
         source = settings.DROPBOX
         result_cls = uploaders.get_uploader(source)
         self.assertEqual(result_cls, uploaders.AWSDropboxUploader)
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.AWS
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.AWS
         source = settings.GOOGLE_DRIVE
         result_cls = uploaders.get_uploader(source)
         self.assertEqual(result_cls, uploaders.AWSDriveUploader)
@@ -55,7 +55,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
         self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
         settings.CONFIG_PARAMS['storage_bucket_prefix'] = self.bucket_name
 
@@ -380,7 +380,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
         self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
         settings.CONFIG_PARAMS['storage_bucket_prefix'] = self.bucket_name
 
@@ -724,7 +724,7 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
         self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
 
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
         settings.CONFIG_PARAMS['storage_bucket_prefix'] = self.bucket_name
 

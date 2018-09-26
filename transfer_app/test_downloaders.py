@@ -62,7 +62,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
             owner=self.regular_user,
             is_active=False
         )
-        settings.CONFIG_PARAMS['compute_environment'] = settings.GOOGLE
+        settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
 
     def _test_rejects_if_missing_data_case1(self):
         '''
