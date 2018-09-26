@@ -1,5 +1,8 @@
 import sys
 import os
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.realpath(os.pardir))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cccb_transfers.settings')
 
 import django
