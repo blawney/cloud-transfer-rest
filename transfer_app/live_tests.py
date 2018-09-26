@@ -95,7 +95,7 @@ class LiveTransferTest(TestCase):
         user = request.user
 
         # ensure we have the correct user for the test:
-        if user.username == settings.LIVE_TEST_CONFIG_PARAMS['dummy_username']:
+        if user.username == settings.LIVE_TEST_CONFIG_PARAMS['test_username']:
 
             # need to ensure we have the Resource already in the database:
             try:

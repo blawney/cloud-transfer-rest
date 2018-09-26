@@ -1,3 +1,8 @@
+'''
+This script guides users to answer questions and fills in the
+details in config and settings files as appropriate.
+'''
+
 import os
 import sys
 import re
@@ -8,7 +13,11 @@ def take_inputs():
 
     params = {}
 
-    print('Please enter inputs as prompted\n\n')
+    print('Please enter inputs as prompted\n')
+
+    domain = input('Enter your domain.  Note that callbacks will often not work with raw IPs : ')
+    params['domain'] = domain
+
     cloud_environment = input('Which cloud provider? (google, aws): ')
     cloud_environment = cloud_environment.lower()
     if cloud_environment == 'google':
@@ -85,8 +94,23 @@ def fill_template(config_dir, params):
     with open(os.path.join(config_dir, 'general.cfg'), 'w') as outfile:
         outfile.write(template.render(params))
 
+def fill_settings(params):
+    pattern = os.path.join(os.environ['APP_ROOT'], '*', 'settings.template.py')
+    matches = glob.glob(pattern)
+    if len(matches) == 1:
+        template_path = matches[0]
+        settings_dir = os.path.dirname(template_path)
+        env = Environment(loader=FileSystemLoader(settings_dir))
+        template = env.get_template(os.path.basename(template_path))
+        with open(os.path.join(settings_dir, 'settings.py'), 'w') as outfile:
+            outfile.write(template.render(params))
+    else:
+        print('Found multiple files matching the pattern %s.  This should not be the case' % pattern)
+        sys.exit(1)
 
 if __name__ == '__main__':
     config_dir = os.path.join(os.environ['APP_ROOT'], 'config')
     params = take_inputs()
     fill_template(config_dir, params)
+
+    fill_settings(params)
