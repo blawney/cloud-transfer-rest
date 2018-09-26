@@ -38,7 +38,6 @@ def dropbox_code_exchange_transfer_test(request):
     return test.dropbox_code_exchange_test(request)
 
 def dropbox_token_exchange_transfer_test(request):
-    print('exchanging for token')
     test = LiveTransferTest()
     return test.dropbox_token_exchange_test(request)
 
@@ -120,7 +119,6 @@ class LiveTransferTest(TestCase):
 
 
     def dropbox_token_exchange_test(self, request):
-        print(request)
         downloader_cls = downloaders.get_downloader(settings.DROPBOX)
         callback_url = reverse(settings.LIVE_TEST_CONFIG_PARAMS['dropbox_transfer_callback'])
         with mock.patch.dict(downloaders.settings.CONFIG_PARAMS, {'dropbox_callback': callback_url}):
@@ -129,15 +127,34 @@ class LiveTransferTest(TestCase):
             return response
 
     def drive_code_exchange_test(self, request):
-        downloader_cls = downloaders.get_downloader(settings.GOOGLE_DRIVE)
-        request.session['download_info'] = []
-        request.session['download_destination'] = settings.DROPBOX
-        callback_url = reverse(settings.LIVE_TEST_CONFIG_PARAMS['drive_transfer_callback'])
-        with mock.patch.dict(downloaders.settings.CONFIG_PARAMS, {'drive_callback': callback_url}):
-            return downloader_cls.authenticate(request)
+        user = request.user
 
-    @mock.patch('transfer_app.downloaders.transfer_tasks')
-    def drive_token_exchange_test(self, request, mock_tasks):
+        # ensure we have the correct user for the test:
+        if user.username == settings.LIVE_TEST_CONFIG_PARAMS['test_username']:
+
+            # need to ensure we have the Resource already in the database:
+            try:
+                r = Resource.objects.get(path=settings.LIVE_TEST_CONFIG_PARAMS['file_to_transfer'],
+                    size = settings.LIVE_TEST_CONFIG_PARAMS['file_size_in_bytes'],
+                    owner = user
+                )
+                download_info = [{
+                    'resource_pk':r.pk,
+                    'originator':user.pk,
+                    'destination':settings.GOOGLE_DRIVE
+                },]
+                downloader_cls = downloaders.get_downloader(settings.GOOGLE_DRIVE)
+                request.session['download_info'] = download_info
+                request.session['download_destination'] = settings.GOOGLE_DRIVE
+                callback_url = reverse(settings.LIVE_TEST_CONFIG_PARAMS['drive_transfer_callback'])
+                with mock.patch.dict(downloaders.settings.CONFIG_PARAMS, {'drive_callback': callback_url}):
+                    return downloader_cls.authenticate(request)
+            except Exception as ex:
+                print('Could not find!')
+                return HttpResponse('Could not find the test resource')
+
+
+    def drive_token_exchange_test(self, request):
         downloader_cls = downloaders.get_downloader(settings.GOOGLE_DRIVE)
         callback_url = reverse(settings.LIVE_TEST_CONFIG_PARAMS['drive_transfer_callback'])
         with mock.patch.dict(downloaders.settings.CONFIG_PARAMS, {'drive_callback': callback_url}):

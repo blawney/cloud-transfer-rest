@@ -156,9 +156,7 @@ class DropboxDownloader(Downloader):
 
     @classmethod
     def finish_authentication_and_start_download(cls, request):
-        print('in finish auth')
         if request.method == 'GET':
-            print('method was get')
             parser = httplib2.Http()
             if 'error' in request.GET or 'code' not in request.GET:
                 raise exceptions.RequestError('There was an error on the callback')
@@ -176,7 +174,6 @@ class DropboxDownloader(Downloader):
                 'grant_type':'authorization_code'
             })
             headers={'content-type':'application/x-www-form-urlencoded'}
-            print(params)
             resp, content = parser.request(settings.CONFIG_PARAMS['dropbox_token_endpoint'], method = 'POST', body = params, headers = headers)
             c = json.loads(content.decode('utf-8'))
             try:
@@ -194,9 +191,7 @@ class DropboxDownloader(Downloader):
             for item in download_info:
                 item['access_token'] = access_token
 
-            print(access_token)
             # call async method:
-            print('before task')
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
             return HttpResponse('OK')
         else:
@@ -246,7 +241,6 @@ class DriveDownloader(Downloader):
 
     @classmethod
     def finish_authentication_and_start_download(cls, request):
-
         if request.method == 'GET':
             parser = httplib2.Http()
             if 'error' in request.GET or 'code' not in request.GET:
@@ -469,7 +463,6 @@ class GoogleDriveDownloader(GoogleEnvironmentDownloader):
         super().__init__(download_data)
 
     def config_and_start_downloads(self):
-
         custom_config = copy.deepcopy(self.config_params)
         for i, item in enumerate(self.downloader.download_data):
 
