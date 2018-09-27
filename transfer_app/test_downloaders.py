@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
 
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.conf import settings
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
@@ -30,9 +30,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         In a download, users are transferring away from our systems, downloading it to another storage 
         The Resource instances already exist.
         '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(username='reguser', password='abcd123!')
+        self.other_user = get_user_model().objects.create_user(username='otheruser', password='abcd123!')
 
         # create a couple of resources owned by the regular user:
         r1 = Resource.objects.create(
@@ -71,7 +71,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -86,7 +86,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -101,7 +101,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -117,7 +117,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -133,7 +133,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -149,7 +149,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -165,7 +165,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         client = APIClient()
         client.login(username='reguser', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(username='reguser')
 
         url = reverse('download-transfer-initiation')
         d = {}

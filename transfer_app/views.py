@@ -4,7 +4,6 @@ import datetime
 from Crypto.Cipher import DES
 import httplib2
 
-from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
@@ -19,6 +18,7 @@ from rest_framework.views import exception_handler, APIView
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render
+from django.contrib.auth import get_user_model
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 from transfer_app.serializers import ResourceSerializer, \
@@ -57,7 +57,7 @@ class UserList(generics.ListCreateAPIView):
 
     This view is limited to users with elevated/admin privileges
     '''
-    queryset = User.objects.all()
+    queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAdminUser,)
 
@@ -71,7 +71,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 
     This view is limited to users with elevated/admin privileges
     '''
-    queryset = User.objects.all()
+    queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAdminUser,)
     
@@ -146,7 +146,7 @@ class UserResourceList(generics.ListAPIView):
     def get_queryset(self):
         user_pk = self.kwargs['user_pk']
         try:
-            user = User.objects.get(pk=user_pk)
+            user = get_user_model().objects.get(pk=user_pk)
             return Resource.objects.user_resources(user)
         except ObjectDoesNotExist as ex:
             raise Http404
@@ -215,7 +215,7 @@ class UserTransferList(generics.ListAPIView):
     def get_queryset(self):
         user_pk = self.kwargs['user_pk']
         try:
-            user = User.objects.get(pk=user_pk)
+            user = get_user_model().objects.get(pk=user_pk)
             return Transfer.objects.user_transfers(user)
         except ObjectDoesNotExist as ex:
             raise Http404
@@ -287,7 +287,7 @@ class UserBatchList(generics.ListAPIView):
     def get_queryset(self):
         user_pk = self.kwargs['user_pk']
         try:
-            user = User.objects.get(pk=user_pk)
+            user = get_user_model().objects.get(pk=user_pk)
             return TransferCoordinator.objects.user_transfer_coordinators(user)
         except ObjectDoesNotExist as ex:
             raise Http404

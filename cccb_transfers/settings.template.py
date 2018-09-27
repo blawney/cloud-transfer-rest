@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'transfer_app.apps.TransferAppConfig',
+    'custom_auth.apps.CustomAuthConfig',
 ]
 
 MIDDLEWARE = [
@@ -123,6 +124,10 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+# Register our custom authentication/user:
+AUTH_USER_MODEL = 'custom_auth.CustomUser'
+
+
 # Settings specific to REST framework:
 REST_FRAMEWORK = {
 
@@ -184,7 +189,7 @@ DOWNLOADER_CONFIG = {
     ]
 }
 
-LOGIN_URL = '/login/'
+LOGIN_URL = '/auth/login/'
 
 #Celery settings:
 CELERY_BROKER_URL = 'redis://localhost:6379'

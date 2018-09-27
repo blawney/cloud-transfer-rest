@@ -1,7 +1,6 @@
 from django.db import models
 
-from django.contrib.auth.models import User
-
+from django.contrib.auth import get_user_model
 
 class ResourceManager(models.Manager):
      '''
@@ -27,7 +26,7 @@ class Resource(models.Model):
     size = models.BigIntegerField(default=0)
 
     # each Resource can only be associated with a single User instance
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
 
     # this boolean controls whether a Resource is active and able to be transferred
     is_active = models.BooleanField(null=False, default=True)
@@ -70,11 +69,6 @@ class TransferCoordinator(models.Model):
     gives us the link between the two entities.
     '''
 
-    # Having the owner field allows us to know who started batch transfers.
-    # Could also get this by diving down to the actual Resources, but ease of
-    # access trumps other concerns here.
-    #owner = models.ForeignKey(User, on_delete=models.CASCADE)
-
     # If all the Transfers have completed
     completed = models.BooleanField(null=False, default=False)
 
@@ -93,7 +87,6 @@ class TransferObjectManager(models.Manager):
      This class provides a nice way to filter Transfer objects for a particular user
      '''
      def user_transfers(self, user):
-         #return super(TransferObjectManager, self).get_queryset().filter(resource__owner=user)
          return super(TransferObjectManager, self).get_queryset().filter(originator=user)
 
      #def get_coordinator(self, tc):
@@ -138,7 +131,7 @@ class Transfer(models.Model):
     # other users (such as admins) can request transfers on behalf of regular users
     # this allows us to track who started the transfer, while the resource may only be
     # owned by that regular user
-    originator = models.ForeignKey(User, on_delete=models.CASCADE)
+    originator = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
 
     objects = TransferObjectManager()
 
