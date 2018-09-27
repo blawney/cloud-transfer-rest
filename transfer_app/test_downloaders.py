@@ -9,6 +9,7 @@ from rest_framework.exceptions import MethodNotAllowed
 
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.contrib.sites.models import Site
 from django.conf import settings
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
@@ -30,9 +31,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         In a download, users are transferring away from our systems, downloading it to another storage 
         The Resource instances already exist.
         '''
-        self.admin_user = get_user_model().objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = get_user_model().objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = get_user_model().objects.create_user(username='otheruser', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+        self.other_user = get_user_model().objects.create_user(email='otheruser@gmail.com', password='abcd123!')
 
         # create a couple of resources owned by the regular user:
         r1 = Resource.objects.create(
@@ -63,15 +64,20 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
             is_active=False
         )
         settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
+      
+        site = Site.objects.get(pk=1)
+        site.domain = 'example.org'
+        site.name = 'example.org'
+        site.save()
 
     def _test_rejects_if_missing_data_case1(self):
         '''
         Here, we leave out the destination as part of the request.
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -84,9 +90,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, we leave out the resource primary keys as part of the request.
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -99,9 +105,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, one of the primary keys is NOT an integer
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -115,9 +121,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, the resource pk list is empty
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -131,9 +137,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, one of the primary keys does not exist-- reject
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -147,9 +153,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, a user requests to download a Resource that does NOT belong to them
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -163,9 +169,9 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         Here, a user requests to download a Resource that has expired
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = get_user_model().objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         url = reverse('download-transfer-initiation')
         d = {}
@@ -586,7 +592,7 @@ class GoogleDriveDownloadTestCase(GoogleEnvironmentDownloadTestCase):
         # construct the callback URL for Dropbox to use:
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        code_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+        code_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
 
         expected_url = "{code_request_uri}?response_type={response_type}&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&state={state}".format(
             code_request_uri = settings.CONFIG_PARAMS['drive_auth_endpoint'],
@@ -643,7 +649,7 @@ class GoogleDriveDownloadTestCase(GoogleEnvironmentDownloadTestCase):
 
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
+        full_callback_url = 'https://%s%s' % (domain, settings.CONFIG_PARAMS['drive_callback'])
         headers={'content-type':'application/x-www-form-urlencoded'}
         expected_params = urllib.parse.urlencode({
                 'code':code,
