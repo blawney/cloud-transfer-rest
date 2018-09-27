@@ -20,7 +20,10 @@
 	</head>
 	<body>
         <div id="main-container" class="container">
-            <div class="row">
+            <div class="row padded-row">
+                <h3>Test authentication: </h3>
+            </div>
+            <div class="row padded-row">
                 <button id="test-dropbox-auth" class="btn btn-primary">
                     Test Dropbox Authentication
                 </button>
@@ -30,7 +33,10 @@
                     Test Drive Authentication
                 </button>
             </div>
-            <div class="row">
+            <div class="row padded-row">
+                <h3>Test live transfer: </h3>
+            </div>
+            <div class="row padded-row">
                 <button id="test-dropbox-transfer" class="btn btn-primary">
                     Test Dropbox Transfer
                 </button>
@@ -51,26 +57,25 @@
            }
 
             $('#test-dropbox-auth').click(function(e){
-                url = "{%  url 'live_oauth_test_dropbox' %}";
+                url = "/test/dropbox/";
                 go(url);
             })
 
             $('#test-drive-auth').click(function(e){
-                url = "{%  url 'live_oauth_test_drive' %}";
+                url = "/test/drive/";
 		go(url);
             })
 
             $('#test-dropbox-transfer').click(function(e){
-                url = "{%  url 'live_transfer_test_dropbox' %}";
+                url = "/test/transfer-test/dropbox/";
                 go(url);
             })
 
             $('#test-drive-transfer').click(function(e){
-                url = "{%  url 'live_transfer_test_drive' %}";
+                url = "/test/transfer-test/drive/";
 		go(url);
             })
 
         </script>
 	</body>
 </html>
-
