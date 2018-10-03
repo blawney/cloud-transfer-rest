@@ -8,6 +8,7 @@ from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.conf import settings
+from django.shortcuts import render
 
 from rest_framework import generics, permissions, renderers, status
 from rest_framework.decorators import api_view
@@ -32,13 +33,9 @@ import transfer_app.uploaders as _uploaders
 import transfer_app.downloaders as _downloaders
 
 
-def test_dropbox(request):
-    downloader_cls = _downloaders.get_downloader(settings.DROPBOX)
-    return downloader_cls.authenticate(request)
+def index(request):
+    return render(request, 'transfer_app/index.html', {})
 
-def test_drive(request):
-    downloader_cls = _downloaders.get_downloader(settings.GOOGLE_DRIVE)
-    return downloader_cls.authenticate(request)
 
 @api_view(['GET'])
 def api_root(request, format=None):

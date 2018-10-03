@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-
+{% load static %}
 <html>
 	<head>
 		<!-- Required meta tags -->
@@ -10,7 +10,7 @@
 		<!--<link rel="stylesheet" href="bootstrap.min.css">-->
         <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
 
-        <link rel="stylesheet" href="pagestyle.css">
+        <link rel="stylesheet" href="{%static "transfer_app/css/style.css" %}">
 	</head>
 	<body>
         <div id="wrapper">
@@ -44,8 +44,8 @@
                     <h3>Uploads</h3>
                     Upload files to our system for analysis by choosing from the storage providers below.
                     <div class="providers-wrapper">
-                             <img class="provider-btn" src="Dropbox.png">
-                            <img class="provider-btn" src="google-drive-logo-lockup.png">
+                             <img class="provider-btn" src="{% static "transfer_app/img/Dropbox.png" %}">
+                            <img class="provider-btn" src="{% static "transfer_app/img/google-drive-logo-lockup.png" %}">
                     </div>
                 </div>
                 <div id="download" class="subcontent">
@@ -81,8 +81,8 @@
                     </table>
                     <p><b>2.</b> Choose a storage service.</p>
                     <div class="providers-wrapper">
-                        <img class="provider-btn" src="Dropbox.png">
-                        <img class="provider-btn" src="all-drive-assets-from-SDK/google-drive-logo-lockup.png">
+                        <img class="provider-btn" src="{% static "transfer_app/img/Dropbox.png" %}">
+                        <img class="provider-btn" src="{% static "transfer_app/img/google-drive-logo-lockup.png" %}">
                     </div>
                 </div>
                 <div id="history" class="subcontent">
@@ -114,7 +114,10 @@
 
             </div>
             </div></div>
-		<script src="jquery.min.js"></script>
+                <script
+			  src="https://code.jquery.com/jquery-3.3.1.min.js"
+			  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+			  crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="434yn436p3z4rg0"></script>
         <script>
             
@@ -284,7 +287,7 @@
             
         
         </script>
-        <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=loadPicker"></script>
+        <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
 
     </body>
 </html>

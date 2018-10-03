@@ -12,8 +12,10 @@ info they provide back
 '''
 urlpatterns = [
 
+    re_path(r'^$', views.index),
+
     # The API root gives a browsable view of the endpoints
-    re_path(r'^$', views.api_root),
+    re_path(r'^api/$', views.api_root),
    
     # endpoints related to querying User info:
     re_path(r'^users/$', views.UserList.as_view(), name='user-list'),
