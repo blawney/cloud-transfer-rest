@@ -21,8 +21,7 @@ def populate():
     params = settings.LIVE_TEST_CONFIG_PARAMS
     user_model = get_user_model()
     try:
-        test_user = user_model.objects.create_user(username=params['test_username'], 
-            email=params['test_email'],
+        test_user = user_model.objects.create_user(email=params['test_email'],
             password=params['test_password']
         )
     except django.db.utils.IntegrityError as ex:

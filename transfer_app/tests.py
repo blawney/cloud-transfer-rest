@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.conf import settings
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
@@ -16,9 +16,9 @@ from transfer_app.models import Resource, Transfer, TransferCoordinator
 def create_data(testcase_obj):
 
     # create two users-- one is admin, other is regular
-    testcase_obj.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-    testcase_obj.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-    testcase_obj.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
+    testcase_obj.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+    testcase_obj.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
+    testcase_obj.other_user = get_user_model().objects.create_user(email='otheruser@gmail.com', password='abcd123!')
 
     # create a couple of Resources owned by admin:
     r1 = Resource.objects.create(
@@ -127,7 +127,7 @@ class ResourceListTestCase(TestCase):
     def test_admin_can_list_all_resources(self):
         r = Resource.objects.all()
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!') 
+        client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('resource-list')
         response = client.get(url)
         self.assertEqual(response.status_code,200) 
@@ -135,8 +135,8 @@ class ResourceListTestCase(TestCase):
 
     def test_regular_user_can_list_only_their_resources(self):
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
-        u = User.objects.filter(username='reguser')[0]
+        client.login(email='reguser@gmail.com', password='abcd123!')
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
         url = reverse('resource-list')
         response = client.get(url)
@@ -165,16 +165,16 @@ Tests for creation of Resource:
 '''
 class ResourceCreateTestCase(TestCase):
     def setUp(self):
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
 
     def test_admin_can_create_resource_for_self(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the admin user's pk:
-        u = User.objects.filter(username='adminuser')[0]
+        u = get_user_model().objects.filter(email='admin@admin.com')[0]
         adminuser_pk = u.pk
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
@@ -194,10 +194,10 @@ class ResourceCreateTestCase(TestCase):
     def test_admin_can_create_resource_for_other(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
@@ -217,14 +217,14 @@ class ResourceCreateTestCase(TestCase):
     def test_regular_user_can_create_resource_for_self(self):
         # establish the regular client:
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # initial number of Resource objects:
         r_orig = Resource.objects.all()
         r_orig_len = len(r_orig)
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
@@ -244,13 +244,13 @@ class ResourceCreateTestCase(TestCase):
     def test_regular_user_cannot_create_resource_for_other(self):
         # establish the regular client:
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # initial number of Resource objects:
         r_orig = Resource.objects.all()
 
         # get the admin user's pk:
-        u = User.objects.filter(username='adminuser')[0]
+        u = get_user_model().objects.filter(email='admin@admin.com')[0]
         adminuser_pk = u.pk
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
@@ -283,53 +283,53 @@ class ResourceDetailTestCase(TestCase):
     def test_return_404_for_missing_resource(self):
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('resource-detail', args=[666,]) # some non-existant pk
         response = admin_client.get(url)
         self.assertEqual(response.status_code,404) 
 
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('resource-detail', args=[666,]) # some non-existant pk
         response = reg_client.get(url)
         self.assertEqual(response.status_code,404)
 
     def test_admin_user_can_query_own_resource(self):
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         r = Resource.objects.filter(owner = admin_user)
         instance = r[0]
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('resource-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
 
     def test_admin_user_can_query_others_resource(self):
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         r = Resource.objects.filter(owner = reg_user)
         instance = r[0]
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!')
+        admin_client.login(email='admin@admin.com', password='abcd123!')
         url = reverse('resource-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
 
     def test_regular_user_denied_access_to_others_resource(self):
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         r = Resource.objects.filter(owner = admin_user)
         instance = r[0]
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('resource-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code,404)
 
     def test_regular_user_given_access_to_own_resource(self):
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         r = Resource.objects.filter(owner = reg_user)
         instance = r[0]
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('resource-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -350,13 +350,13 @@ class UserResourceListTestCase(TestCase):
 
         # query all existing users, get the max pk, then add 1
         # to guarantee a non-existent user's pk
-        all_users = User.objects.all()
+        all_users = get_user_model().objects.all()
         all_user_pks = [x.pk for x in all_users]
         max_pk = max(all_user_pks)
         nonexistent_user_pk = max_pk + 1
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('user-resource-list', args=[nonexistent_user_pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -368,10 +368,10 @@ class UserResourceListTestCase(TestCase):
         functionality is already handled by a request to the /resources/ endpoint
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-resource-list', args=[reguser_pk])
@@ -382,10 +382,10 @@ class UserResourceListTestCase(TestCase):
 
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-resource-list', args=[reguser_pk])
@@ -410,7 +410,7 @@ class TransferListTestCase(TestCase):
         ''' 
         t = Transfer.objects.all()
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-list')
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -422,11 +422,11 @@ class TransferListTestCase(TestCase):
         Note that this does NOT list the Transfers that happened for Resources they owned.
         
         ''' 
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         user_transfers = Transfer.objects.user_transfers(reg_user)
 
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!')
+        reg_client.login(email='reguser@gmail.com', password='abcd123!')
         url = reverse('transfer-list')
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -438,7 +438,7 @@ class TransferListTestCase(TestCase):
         '''
         t = Transfer.objects.all()
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-list')
         url = '%s?download=true' % url
         response = admin_client.get(url)
@@ -451,7 +451,7 @@ class TransferListTestCase(TestCase):
         '''
         t = Transfer.objects.all()
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-list')
         url = '%s?download=false' % url
         response = admin_client.get(url)
@@ -464,7 +464,7 @@ class TransferListTestCase(TestCase):
         '''
         t = Transfer.objects.all()
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('transfer-list')
         url = '%s?download=true' % url
         response = reg_client.get(url)
@@ -480,7 +480,7 @@ class TransferListTestCase(TestCase):
         '''
         t = Transfer.objects.all()
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('transfer-list')
         url = '%s?download=false' % url
         response = reg_client.get(url)
@@ -503,23 +503,23 @@ class TransferDetailTestCase(TestCase):
     def test_return_404_for_missing_transfer(self):
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[666,]) # some non-existant pk
         response = admin_client.get(url)
         self.assertEqual(response.status_code,404) 
 
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[666,]) # some non-existant pk
         response = reg_client.get(url)
         self.assertEqual(response.status_code,404)
 
     def test_admin_user_can_query_own_transfer(self):
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         t = Transfer.objects.user_transfers(admin_user)
         instance = t[0]
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -534,13 +534,13 @@ class TransferDetailTestCase(TestCase):
 
     def test_admin_user_can_query_others_transfer(self):
         # get an instance of a regular user's Transfer
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         t = Transfer.objects.user_transfers(reg_user)
         instance = t[0]
 
         # create admin client:
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -555,13 +555,13 @@ class TransferDetailTestCase(TestCase):
 
     def test_regular_user_can_query_own_transfer(self):
         # get an instance of a regular user's Transfer
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         t = Transfer.objects.user_transfers(reg_user)
         instance = t[0]
 
         # create regular client:
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -576,13 +576,13 @@ class TransferDetailTestCase(TestCase):
 
     def test_regular_user_cannot_query_others_transfer(self):
         # get an instance of another user's Transfer (here, the admins)
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         t = Transfer.objects.user_transfers(admin_user)
         instance = t[0]
 
         # create regular client:
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('transfer-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -602,13 +602,13 @@ class UserTransferListTestCase(TestCase):
 
         # query all existing users, get the max pk, then add 1
         # to guarantee a non-existent user's pk
-        all_users = User.objects.all()
+        all_users = get_user_model().objects.all()
         all_user_pks = [x.pk for x in all_users]
         max_pk = max(all_user_pks)
         nonexistent_user_pk = max_pk + 1
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('user-transfer-list', args=[nonexistent_user_pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -620,10 +620,10 @@ class UserTransferListTestCase(TestCase):
         functionality is already handled by a request to the /resources/ endpoint
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-transfer-list', args=[reguser_pk])
@@ -634,10 +634,10 @@ class UserTransferListTestCase(TestCase):
 
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-transfer-list', args=[reguser_pk])
@@ -665,7 +665,7 @@ class UserListTestCase(TestCase):
     def test_list_all_users_by_admin(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')        
+        client.login(email='admin@admin.com', password='abcd123!')        
 
         url = reverse('user-list')
         response = client.get(url)
@@ -676,22 +676,22 @@ class UserListTestCase(TestCase):
     def test_list_specific_user_by_admin(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')        
+        client.login(email='admin@admin.com', password='abcd123!')        
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-detail', args=[reguser_pk])
         response = client.get(url)
         data = response.data
         self.assertEqual(response.status_code,200) 
-        self.assertEqual(data['username'], 'reguser')
+        self.assertEqual(data['email'], 'reguser@gmail.com')
 
     def test_regular_user_cannot_list_users(self):
         # establish a "regular" client:
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')        
+        client.login(email='reguser@gmail.com', password='abcd123!')        
 
         # check that querying all users is blocked:
         url = reverse('user-list')
@@ -701,7 +701,7 @@ class UserListTestCase(TestCase):
 
         # Now check that they cannot check even their own data:
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-detail', args=[reguser_pk])
@@ -724,35 +724,33 @@ class UserCreateTestCase(TestCase):
     def test_admin_can_create_user(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the admin user's pk:
-        u = User.objects.filter(username='adminuser')[0]
+        u = get_user_model().objects.filter(email='admin@admin.com')[0]
         adminuser_pk = u.pk
 
         url = reverse('user-list')
-        data = {'username': 'reguser@email.com', \
-                'email':'reguser@email.com', \
+        data = {'email':'reguser@email.com', \
                 'password': 'abcd123!', \
         }
         response = client.post(url, data, format='json')
         self.assertEqual(response.status_code, 201)  
 
-        u = User.objects.filter(username='reguser@email.com')
+        u = get_user_model().objects.filter(email='reguser@email.com')
         self.assertEqual(len(u), 1)
 
     def test_regular_user_cannot_create_user(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # get the admin user's pk:
-        u = User.objects.filter(username='adminuser')[0]
+        u = get_user_model().objects.filter(email='admin@admin.com')[0]
         adminuser_pk = u.pk
 
         url = reverse('user-list')
-        data = {'username': 'anotherreguser@email.com', \
-                'email':'anotherreguser@email.com', \
+        data = {'email':'anotherreguser@email.com', \
                 'password': 'abcd123!', \
         }
         response = client.post(url, data, format='json')
@@ -771,27 +769,27 @@ class UserDeleteTestCase(TestCase):
     def test_admin_can_delete_user(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
-        u = User.objects.filter(username='reguser')
+        u = get_user_model().objects.filter(email='reguser@gmail.com')
         self.assertEqual(len(u), 1)
 
         # get the reg user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-detail', args=[reguser_pk,])
         response = client.delete(url)  
-        u = User.objects.filter(username='reguser')
+        u = get_user_model().objects.filter(email='reguser@gmail.com')
         self.assertEqual(len(u), 0)
 
     def test_admin_deletion_of_user_cascades(self):
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # query for the user and ensure there are existing Resource/Transfer
         # instances associated with that user
-        u = User.objects.filter(username='reguser')
+        u = get_user_model().objects.filter(email='reguser@gmail.com')
         reguser = u[0]
         r = Resource.objects.user_resources(reguser)
         t = Transfer.objects.user_transfers(reguser)
@@ -800,13 +798,13 @@ class UserDeleteTestCase(TestCase):
         self.assertEqual(len(t), 3)
 
         # get the admin user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         # delete the user and check that the associated items are ALSO deleted:
         url = reverse('user-detail', args=[reguser_pk,])
         response = client.delete(url)  
-        u = User.objects.filter(username='reguser')
+        u = get_user_model().objects.filter(email='reguser@gmail.com')
         r = Resource.objects.user_resources(reguser)
         t = Transfer.objects.user_transfers(reguser)
         self.assertEqual(len(u), 0)
@@ -816,9 +814,9 @@ class UserDeleteTestCase(TestCase):
     def test_reguser_cannot_delete_user(self):
         # establish the admin client:
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        u = User.objects.filter(username='otheruser')
+        u = get_user_model().objects.filter(email='otheruser@gmail.com')
         self.assertEqual(len(u), 1)
         otheruser_pk = u[0].pk
 
@@ -837,19 +835,19 @@ class TransferCoordinatorListTestCase(TestCase):
 
     def test_list_all_transfercoordinators_for_admin(self):
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('batch-list')
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4) 
 
     def test_nonadmin_list_returns_only_owned_transfers(self):
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         user_tc = TransferCoordinator.objects.user_transfer_coordinators(reg_user)
         user_tc_pk = set([x.pk for x in user_tc]) # the primary keys of the 
 
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!')
+        reg_client.login(email='reguser@gmail.com', password='abcd123!')
         url = reverse('batch-list')
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -881,23 +879,23 @@ class TransferCoordinatorDetailTestCase(TestCase):
     def test_return_404_for_missing_tc(self):
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('batch-detail', args=[666,]) # some non-existant pk
         response = admin_client.get(url)
         self.assertEqual(response.status_code,404) 
 
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('batch-detail', args=[666,]) # some non-existant pk
         response = reg_client.get(url)
         self.assertEqual(response.status_code,404)
 
     def test_admin_user_can_query_own_tc(self):
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         t = TransferCoordinator.objects.user_transfer_coordinators(admin_user)
         instance = t[0]
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('batch-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -913,13 +911,13 @@ class TransferCoordinatorDetailTestCase(TestCase):
 
     def test_admin_user_can_query_others_tc(self):
         # get an instance of a regular user's TransferCoordinator
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         t = TransferCoordinator.objects.user_transfer_coordinators(reg_user)
         instance = t[0]
 
         # create admin client:
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('batch-detail', args=[instance.pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -936,13 +934,13 @@ class TransferCoordinatorDetailTestCase(TestCase):
 
     def test_regular_user_can_query_own_tc(self):
         # get an instance of a regular user's TransferCoordinator
-        reg_user = User.objects.get(username='reguser')
+        reg_user = get_user_model().objects.get(email='reguser@gmail.com')
         t = TransferCoordinator.objects.user_transfer_coordinators(reg_user)
         instance = t[0]
 
         # create regular client:
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('batch-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -958,13 +956,13 @@ class TransferCoordinatorDetailTestCase(TestCase):
 
     def test_regular_user_cannot_query_others_tc(self):
         # get an instance of another user's TransferCoordinator (here, the admins)
-        admin_user = User.objects.get(username='adminuser')
+        admin_user = get_user_model().objects.get(email='admin@admin.com')
         t = TransferCoordinator.objects.user_transfer_coordinators(admin_user)
         instance = t[0]
 
         # create regular client:
         reg_client = APIClient()
-        reg_client.login(username='reguser', password='abcd123!') 
+        reg_client.login(email='reguser@gmail.com', password='abcd123!') 
         url = reverse('batch-detail', args=[instance.pk,])
         response = reg_client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -983,13 +981,13 @@ class TransferCoordinatorUserListCase(TestCase):
 
         # query all existing users, get the max pk, then add 1
         # to guarantee a non-existent user's pk
-        all_users = User.objects.all()
+        all_users = get_user_model().objects.all()
         all_user_pks = [x.pk for x in all_users]
         max_pk = max(all_user_pks)
         nonexistent_user_pk = max_pk + 1
 
         admin_client = APIClient()
-        admin_client.login(username='adminuser', password='abcd123!') 
+        admin_client.login(email='admin@admin.com', password='abcd123!') 
         url = reverse('user-batch-list', args=[nonexistent_user_pk,])
         response = admin_client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -1001,10 +999,10 @@ class TransferCoordinatorUserListCase(TestCase):
         functionality is already handled by a request to the /resources/ endpoint
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-batch-list', args=[reguser_pk])
@@ -1015,10 +1013,10 @@ class TransferCoordinatorUserListCase(TestCase):
 
         # establish the admin client:
         client = APIClient()
-        client.login(username='adminuser', password='abcd123!')
+        client.login(email='admin@admin.com', password='abcd123!')
 
         # get the regular user's pk:
-        u = User.objects.filter(username='reguser')[0]
+        u = get_user_model().objects.filter(email='reguser@gmail.com')[0]
         reguser_pk = u.pk
 
         url = reverse('user-batch-list', args=[reguser_pk])
@@ -1049,7 +1047,7 @@ Tests for completion marking:
 class CompletionMarkingTestCase(TestCase):
 
     def setUp(self):
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
 
         # create a couple of resources owned by the regular user:
         r1 = Resource.objects.create(

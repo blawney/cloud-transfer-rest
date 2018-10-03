@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.conf import settings
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
@@ -51,9 +51,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         In addition, we setup appropriate environment variables that would be there in the
         implementation
         '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+        self.other_user = get_user_model().objects.create_user(email='otheruser@gmail.com', password='abcd123!')
 
         settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
@@ -65,9 +65,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         Here, the upload_source key is not recognized
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -84,9 +84,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         Here, a required key is missing ('pathS' is used instead of 'path')
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -103,9 +103,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         Here, the request is missing the upload_source key
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -123,9 +123,9 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         from the request
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         request_dict = {'upload_source':settings.DROPBOX}
         url = reverse('upload-transfer-initiation')
@@ -376,9 +376,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         In addition, we setup appropriate environment variables that would be there in the
         implementation
         '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+        self.other_user = get_user_model().objects.create_user(email='otheruser@gmail.com', password='abcd123!')
 
         settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
@@ -390,9 +390,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         Here, the upload_source key is not recognized
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -409,9 +409,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         Here, a required key is missing ('file_idS' is used instead of 'file_id')
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -428,9 +428,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         Here, the request is missing the upload_source key
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         # a list of dicts to be used in the request
         upload_info = []
@@ -448,9 +448,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         from the request
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         request_dict = {'upload_source':settings.GOOGLE_DRIVE}
         url = reverse('upload-transfer-initiation')
@@ -463,9 +463,9 @@ class DriveGoogleUploadInitTestCase(TestCase):
         Here, we are missing the oauth access token
         '''
         client = APIClient()
-        client.login(username='reguser', password='abcd123!')
+        client.login(email='reguser@gmail.com', password='abcd123!')
 
-        reguser = User.objects.get(username='reguser')
+        reguser = get_user_model().objects.get(email='reguser@gmail.com')
 
         upload_info = []
         # named 'token' instead of drive_token
@@ -720,9 +720,9 @@ class GoogleEnvironmentUploadInitTestCase(TestCase):
         '''
         In an upload, users are transferring TO our system.  Resource objects do NOT exist up front.
         '''
-        self.admin_user = User.objects.create_user(username='adminuser', password='abcd123!', is_staff=True)
-        self.regular_user = User.objects.create_user(username='reguser', password='abcd123!')
-        self.other_user = User.objects.create_user(username='otheruser', password='abcd123!')
+        self.admin_user = get_user_model().objects.create_user(email='admin@admin.com', password='abcd123!', is_staff=True)
+        self.regular_user = get_user_model().objects.create_user(email='reguser@gmail.com', password='abcd123!')
+        self.other_user = get_user_model().objects.create_user(email='otheruser@gmail.com', password='abcd123!')
 
         settings.CONFIG_PARAMS['cloud_environment'] = settings.GOOGLE
         self.bucket_name = 'gs://user-storage-bucket'
