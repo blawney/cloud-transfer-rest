@@ -32,6 +32,8 @@ urlpatterns = [
     re_path(r'^transfers/download/init/$', views.InitDownload.as_view(), name='download-transfer-initiation'),
     re_path(r'^transfers/(?P<pk>[0-9]+)/$', views.TransferDetail.as_view(), name='transfer-detail'),
     re_path(r'^transfers/user/(?P<user_pk>[0-9]+)/$', views.UserTransferList.as_view(), name='user-transfer-list'),
+    re_path(r'^transferred-resources/$', views.TransferredResourceList.as_view(), name='transferred-resource-list'),
+
 
     # endpoints related to querying TransferCoordinators, so we can group the Transfer instances
     re_path(r'^transfers/batch/$', views.BatchList.as_view(), name='batch-list'),

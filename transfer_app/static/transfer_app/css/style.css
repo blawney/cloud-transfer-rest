@@ -75,6 +75,11 @@ p {
     padding-left:10px;
 }
 
+.detail-loader{
+    text-decoration: underline;
+    cursor:pointer;
+}
+
 .provider-btn{
     cursor: pointer;
     width:60%;

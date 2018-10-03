@@ -1,3 +1,109 @@
+// function that retrieves the cookie with specified name. 
+// Used to get the django-generated CSRF token for sending AJAX requests
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// function to print human-readable file size
+function humanFileSize(bytes) {
+    var thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB','MB','GB','TB','PB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
+}
+
+/* 
+******************************************************
+START Loading of dynamic resources: 
+******************************************************
+*/
+
+var csrfToken = getCookie('csrftoken');
+
+// Get the active resources for the download tab:
+$.ajax({
+    url:"/resources/?is_active=true",
+    type:"GET",
+    headers:{"X-CSRFToken": csrfToken},
+    success:function(response){
+        var tableBody = $("#download-table tbody");
+        var markup = "";
+        for(var i=0; i<response.length; i++){
+            var item = response[i];
+            var size = humanFileSize(item['size']);
+            var split_str = item['path'].split("/");
+            var filename = split_str[split_str.length-1];
+            markup += `<tr>
+                      <td><input type="checkbox" target="${item['id']}"/></td>
+                      <td>${filename}</td>
+                      <td>${size}</td>
+                    </tr>`;
+        }
+        tableBody.append(markup); 
+    },
+    error:function(){
+        console.log('error!');
+    }
+});
+
+// get the history
+$.ajax({
+    url:"/transferred-resources/",
+    type:"GET",
+    headers:{"X-CSRFToken": csrfToken},
+    success:function(response){
+        var tableBody = $("#history-table tbody");
+        var markup = "";
+        for(var i=0; i<response.length; i++){
+            var item = response[i];
+            var split_str = item['resource']['path'].split("/");
+            var filename = split_str[split_str.length-1];
+            markup += `<tr>
+                      <td>${filename}</td>
+                      <td><span class="detail-loader" detail-key="${item['id']}">View</span></td>
+                    </tr>`;
+        }
+        tableBody.append(markup);
+
+        $(".detail-loader").click(function(e){
+            e.preventDefault();
+            var targetedDetail = $(this).attr("detail-key");
+            console.log("Show detail for " + targetedDetail);
+        });
+    },
+    error:function(){
+        console.log('error!');
+    }
+});
+
+
+/* 
+******************************************************
+END Loading of dynamic resources
+******************************************************
+*/
+
+
+
 /* 
 ******************************************************
 START Dropbox JS 
@@ -179,4 +285,3 @@ $(".select-all-checkbox").click(function(){
         });                }
 
 });
-

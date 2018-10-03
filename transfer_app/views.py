@@ -9,6 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.conf import settings
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from rest_framework import generics, permissions, renderers, status
 from rest_framework.decorators import api_view
@@ -18,21 +19,22 @@ from rest_framework.exceptions import ParseError
 from rest_framework.views import exception_handler, APIView
 
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import render
 from django.contrib.auth import get_user_model
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 from transfer_app.serializers import ResourceSerializer, \
      TransferSerializer, \
      TransferCoordinatorSerializer, \
-     UserSerializer
+     UserSerializer, \
+     TransferredResourceSerializer
+
 import transfer_app.utils as utils
 import transfer_app.exceptions as exceptions
 import transfer_app.tasks as transfer_tasks
 import transfer_app.uploaders as _uploaders
 import transfer_app.downloaders as _downloaders
 
-
+@login_required
 def index(request):
     return render(request, 'transfer_app/index.html', {})
 
@@ -217,6 +219,22 @@ class UserTransferList(generics.ListAPIView):
         except ObjectDoesNotExist as ex:
             raise Http404
 
+
+class TransferredResourceList(generics.ListAPIView):
+    '''
+    This creates a shortcut API which effectively joins
+    a Transfer with the Resource it wraps.  Mainly used to limit
+    the number of requests needed for the frontend.  
+    '''
+    queryset = Transfer.objects.all()
+    serializer_class = TransferredResourceSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        queryset = super(TransferredResourceList, self).get_queryset()
+        if not self.request.user.is_staff:
+            queryset = Transfer.objects.user_transfers(self.request.user)
+        return queryset
 
 class BatchList(generics.ListAPIView):
     '''

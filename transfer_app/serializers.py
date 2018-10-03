@@ -48,3 +48,10 @@ class TransferCoordinatorSerializer(serializers.ModelSerializer):
         model = TransferCoordinator
         fields = ('id', 'completed')
 
+
+class TransferredResourceSerializer(serializers.ModelSerializer):
+    resource = ResourceSerializer(read_only=True)
+
+    class Meta:
+        model = Transfer
+        fields = '__all__'
