@@ -125,6 +125,9 @@ class Transfer(models.Model):
     # does NOT imply success.
     finish_time = models.DateTimeField(null=True)
 
+    # how long the transfer took:
+    duration = models.TimeField(null=True)
+
     # each Transfer is "managed" by a TransferCoordinator, which monitors >=1 Transfers
     coordinator = models.ForeignKey(TransferCoordinator, on_delete=models.CASCADE)
 

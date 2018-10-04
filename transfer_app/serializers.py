@@ -40,6 +40,7 @@ class TransferSerializer(serializers.ModelSerializer):
                   'success', \
                   'start_time', \
                   'finish_time', \
+                  'duration', \
                   'coordinator',
         )
 

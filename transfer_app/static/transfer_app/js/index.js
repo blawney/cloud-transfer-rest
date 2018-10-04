@@ -65,7 +65,29 @@ $.ajax({
     }
 });
 
+function parseDateString(s){
+    // string is formatted like:
+    //  YYYY-MM-DDTHH:MM:SS.XXXXXXZ
+    var contents = s.split("T");
+    
+}
+
+
+function showDetail(pk){
+    console.log(history[pk]);
+    var item = history[pk];
+    var split_str = item['resource']['path'].split("/");
+    var filename = split_str[split_str.length-1];
+    var startTime = item['start_time'];
+    var success = item['success'];
+    var finishTime = "-";
+    if(success){
+        finishTime = item['finish_time'];
+    }
+}
+
 // get the history
+var history = {}
 $.ajax({
     url:"/transferred-resources/",
     type:"GET",
@@ -75,11 +97,13 @@ $.ajax({
         var markup = "";
         for(var i=0; i<response.length; i++){
             var item = response[i];
+            var pk = item['id'];
+            history[pk] = item;
             var split_str = item['resource']['path'].split("/");
             var filename = split_str[split_str.length-1];
             markup += `<tr>
                       <td>${filename}</td>
-                      <td><span class="detail-loader" detail-key="${item['id']}">View</span></td>
+                      <td><span class="detail-loader" detail-key="${pk}">View</span></td>
                     </tr>`;
         }
         tableBody.append(markup);
@@ -88,12 +112,14 @@ $.ajax({
             e.preventDefault();
             var targetedDetail = $(this).attr("detail-key");
             console.log("Show detail for " + targetedDetail);
+            showDetail(targetedDetail);
         });
     },
     error:function(){
         console.log('error!');
     }
 });
+
 
 
 /* 

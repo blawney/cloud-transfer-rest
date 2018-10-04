@@ -331,7 +331,10 @@ class TransferComplete(APIView):
                     transfer_obj = Transfer.objects.get(pk=transfer_pk)
                     transfer_obj.completed = True
                     transfer_obj.success = success
-                    transfer_obj.finish_time = datetime.datetime.now()
+                    now = datetime.datetime.now()
+                    duration = now - transfer_obj.start_time
+                    transfer_obj.duration = duration
+                    transfer_obj.finish_time = now
                     transfer_obj.save()
 
                     # now check if all the Transfers belonging to this TransferCoordinator are complete:
