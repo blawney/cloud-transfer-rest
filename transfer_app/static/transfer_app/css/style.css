@@ -80,6 +80,10 @@ p {
     cursor:pointer;
 }
 
+#back-to-history{
+    cursor:pointer;
+}
+
 .provider-btn{
     cursor: pointer;
     width:60%;

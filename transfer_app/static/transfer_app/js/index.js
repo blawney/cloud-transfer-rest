@@ -69,21 +69,69 @@ function parseDateString(s){
     // string is formatted like:
     //  YYYY-MM-DDTHH:MM:SS.XXXXXXZ
     var contents = s.split("T");
-    
+    return contents[0];
 }
 
+function parseDurationString(s){
+    // string is formatted like "D HH:MM:SS"
+    // where D is integer  (representing days)
+    // and is NOT there if D=0 (e.g. only "HH:MM:SS") 
+    // if less than 1 day
+    var contents = s.split(" ");
+    if(contents.length == 2){
+        var day = parseInt(contents[0]);
+        var time_contents = contents[1].split(":");
+        var hours = parseInt(time_contents[0]);
+        var totalHours = 24*day + hours;
+        var minutes = time_contents[1]; //not parsing as int keeps zero padding
+        var seconds = time_contents[2]; //not parsing as int keeps zero padding
+        return `${totalHours}:${minutes}:${seconds}`;
+    }else{
+        return s;
+    }
+}
 
 function showDetail(pk){
     console.log(history[pk]);
     var item = history[pk];
     var split_str = item['resource']['path'].split("/");
     var filename = split_str[split_str.length-1];
-    var startTime = item['start_time'];
-    var success = item['success'];
-    var finishTime = "-";
-    if(success){
-        finishTime = item['finish_time'];
+    var startTime = parseDateString(item['start_time']);
+    var direction = item['download'] ? "Download" : "Upload";
+    var destination = "-";
+    if(item['download']){
+        destination = item['destination']
     }
+
+    var completed = item['completed'];
+    var completedSymbol = completed ? "&#10004;" :"&#x2716;";
+    var success = "-";
+    var successSymbol = "-";
+    var duration = "-";
+    if(completed){
+        success = item['success'];
+        if(success){
+            successSymbol = "&#10004;";
+            duration = parseDurationString(item['duration']);
+        }else{
+            successSymbol = "&#x2716;"
+        }
+    }
+
+    // compose the table content:
+    var markup = ""
+    markup += `<tr><td>Filename</td><td>${filename}</td></tr>`;
+    markup += `<tr><td>Type</td><td>${direction}</td></tr>`;
+    markup += `<tr><td>Date</td><td>${startTime}</td></tr>`;
+    markup += `<tr><td>Duration</td><td>${duration}</td></tr>`;
+    markup += `<tr><td>Destination</td><td>${destination}</td></tr>`;
+    markup += `<tr><td>Completed</td><td>${completedSymbol}</td></tr>`;
+    markup += `<tr><td>Success</td><td>${successSymbol}</td></tr>`;
+    $("#history-detail-table tbody").empty().append(markup);
+
+    //hide other content:
+    $(".subcontent").hide();
+    $("#history-detail-section").show();
 }
 
 // get the history
@@ -310,4 +358,10 @@ $(".select-all-checkbox").click(function(){
             $(el).prop("checked", false);
         });                }
 
+});
+
+
+$("#back-to-history").click(function(){
+    $("#history-detail-section").toggle();
+    $("#history").toggle();
 });

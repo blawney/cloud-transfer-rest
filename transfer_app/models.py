@@ -126,7 +126,7 @@ class Transfer(models.Model):
     finish_time = models.DateTimeField(null=True)
 
     # how long the transfer took:
-    duration = models.TimeField(null=True)
+    duration = models.DurationField(null=True)
 
     # each Transfer is "managed" by a TransferCoordinator, which monitors >=1 Transfers
     coordinator = models.ForeignKey(TransferCoordinator, on_delete=models.CASCADE)
@@ -144,3 +144,7 @@ class Transfer(models.Model):
     def get_owner(self):
         return self.resource.owner
 
+    def save(self, *args, **kwargs):
+        if self.finish_time:
+            self.duration = self.finish_time - self.start_time
+        super().save(*args, **kwargs)

@@ -54,21 +54,38 @@ def populate():
         settings.GOOGLE,
         settings.GOOGLE,
         settings.DROPBOX,
-        settings.GOOGLE_DRIVE
+        settings.DROPBOX,
+        settings.GOOGLE_DRIVE,
+        settings.GOOGLE,
+        settings.GOOGLE
     ]
+
     inactive_resource_paths = [
         'xyz://dummy-bucket/file_1.txt', 
         'xyz://dummy-bucket/file_2.txt',
         'https://dropbox-link/file_3.txt', # an upload from dropbox
-        'abcd1234', #mock the ID we get from Drive, which is effectively a path
+        'https://dropbox-link/failed_upload.txt', # will be a FAILED upload from dropbox
+        'abcd1234', #mock the ID we get from Drive, which is effectively a path (upload)
+        'xyz://dummy-bucket/ongoing.txt', # will be an ongoing download to drive
+        'xyz://dummy-bucket/failed_download.txt' # will be a failed dropbox download 
     ]
-    inactive_resource_sizes = [1200, 2900000000, 550, 7801]
-    inactive_resource_dates = [
-        datetime.datetime(year=2017, month=3, day=22), 
-        datetime.datetime(year=2018, month=4, day=19),
-        datetime.datetime(year=2018, month=5, day=19),
-        datetime.datetime(year=2018, month=5, day=20),
+
+    destinations = [settings.DROPBOX,
+        settings.DROPBOX,
+        settings.GOOGLE,
+        settings.GOOGLE,
+        settings.GOOGLE,
+        settings.GOOGLE_DRIVE,
+        settings.DROPBOX
     ]
+    completion_status = [True, True, True, True, True, False, True]
+    success_status = [True, True, True, False, True, False, False]
+    inactive_resource_sizes = [random.randint(1000,1000000) for x in range(len(inactive_resource_sources))]
+    inactive_resource_dates = [datetime.datetime(
+                                   year=random.randint(2016, 2018), 
+                                   month=random.randint(1,12), 
+                                   day=random.randint(1,28)) for x in range(len(inactive_resource_sources))]
+
     inactive_resources = []
     for src,p,s,d in zip(inactive_resource_sources, 
             inactive_resource_paths, 
@@ -80,14 +97,17 @@ def populate():
             size=s,
             owner=test_user, 
             date_added = d,
-            is_active = False
+            is_active = False,
         )
         r.save()
         inactive_resources.append(r)
         
 
     # We populate a history here, so there is content in that view.
-    for r in inactive_resources:
+    for i, r in enumerate(inactive_resources):
+
+        is_complete = completion_status[i]
+        was_success = success_status[i]
 
         # Make up some random time offsets so we can mock "real"
         # transfer start and finish times (relative to the date
@@ -97,38 +117,40 @@ def populate():
                  minutes=random.randint(0,59),
                  seconds=random.randint(0,59)
              )
-        dt2 = datetime.timedelta(days=random.randint(0,5),
+        dt2 = datetime.timedelta(days=random.randint(0,1),
                  hours=random.randint(1,12),
                  minutes=random.randint(0,59),
                  seconds=random.randint(0,59)
              )
         start_time = r.date_added + dt1
-        finish_time = start_time + dt2
+
+        if is_complete:
+            finish_time = start_time + dt2
+
         if (r.source == settings.GOOGLE):
             download_state = True
-             # just take all of the downloads to dropbox, does not matter
-            destination = settings.DROPBOX
+            destination = destinations[i]
         else: # mocked upload
             download_state = False
             # if it was an upload, then the destination is a bucket, so make up a name
-            destination = 'xyz://mock-bucket/%s' % os.path.basename(r.path)
+            destination = destinations[i]
 
         # since we are creating Transfer objects below, we need
         # them to refer to a TransferCoordinator.  Just make 
         # a single TransferCoordinator for each Transfer, rather 
         # than grouping them as would happen when a user transfers >1 files
-        tc = TransferCoordinator(completed=True, 
+        tc = TransferCoordinator(completed=is_complete, 
                  start_time=start_time, 
-                 finish_time=finish_time
+                 finish_time=finish_time if is_complete else None
         )
         tc.save()
 
         t = Transfer(download=download_state, 
                 resource=r, 
-                completed=True,
-                success=True,
+                completed=is_complete,
+                success=was_success,
                 start_time = start_time,
-                finish_time = finish_time,
+                finish_time = finish_time if is_complete else None,
                 destination = destination,
                 # just make the originator same as the resource owner (does not have to be)
                 originator=r.owner, 
