@@ -37,12 +37,12 @@ class Downloader(object):
     def _check_format(cls, download_info, user_pk):
 
         # if we receive a single transfer, it might not be in a list
-        if type(download_info) is int:
+        if (type(download_info) is int) or (type(download_info) is str):
             download_info = [download_info,]
         
         # check that we have list of ints
         try:
-            [int(x) for x in download_info]
+            download_info = [int(x) for x in download_info]
         except ValueError as ex:
             raise exceptions.ExceptionWithMessage('''
                 The request payload must only contain 

@@ -1,3 +1,4 @@
+import json
 import urllib
 
 from django.test import TestCase
@@ -82,7 +83,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         url = reverse('download-transfer-initiation')
         d = {}
         d['resource_pks'] = [1,2]
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_if_missing_data_case2(self):
@@ -97,7 +98,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         url = reverse('download-transfer-initiation')
         d = {}
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_if_invalid_payload_case1(self):
@@ -113,7 +114,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         d = {}
         d['resource_pks'] = [1,'a', 2]
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_if_invalid_payload_case2(self):
@@ -129,7 +130,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         d = {}
         d['resource_pks'] = []
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_if_invalid_payload_case3(self):
@@ -145,7 +146,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         d = {}
         d['resource_pks'] = [1, 500, 2] # 500 does not exist as a primary key
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_download_request_based_on_ownership_case1(self):
@@ -161,7 +162,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         d = {}
         d['resource_pks'] = [1, 2, 3] # 3 is owned by someone other user
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_rejects_download_request_based_on_expired_resource(self):
@@ -177,7 +178,7 @@ class GoogleEnvironmentDownloadTestCase(TestCase):
         d = {}
         d['resource_pks'] = [1, 2, 4] # 4 has expired
         d['destination'] = self.destination
-        response = client.post(url, d, format='json')
+        response = client.post(url, {"data":json.dumps(d)}, format='json')
         self.assertEqual(response.status_code, 400)
 
     def _test_admin_requests_transfer_of_other_user_resources(self):

@@ -1,3 +1,5 @@
+//$.ajaxSettings.traditional = true;
+
 // function that retrieves the cookie with specified name. 
 // Used to get the django-generated CSRF token for sending AJAX requests
 function getCookie(name) {
@@ -53,7 +55,7 @@ $.ajax({
             var split_str = item['path'].split("/");
             var filename = split_str[split_str.length-1];
             markup += `<tr>
-                      <td><input type="checkbox" target="${item['id']}"/></td>
+                      <td><input class="download-selector" type="checkbox" target="${item['id']}"/></td>
                       <td>${filename}</td>
                       <td>${size}</td>
                     </tr>`;
@@ -184,6 +186,7 @@ START Dropbox JS
 ******************************************************
 */
 
+// Below is code related to the chooser provided by Dropbox:
 var options = {
 
     // Required. Called when a user selects an item in the Chooser.
@@ -210,8 +213,9 @@ var options = {
 $("#dropbox-upload").click(function(e){
     Dropbox.choose(options);
 });
+// end code regarding chooser
 
-/* 
+/*
 ******************************************************
 END Dropbox JS 
 ******************************************************
@@ -365,3 +369,45 @@ $("#back-to-history").click(function(){
     $("#history-detail-section").toggle();
     $("#history").toggle();
 });
+
+
+// Below is code related to javascript for downloads.  When the user clicks on the button
+// JS needs to collect the info about what to send. 
+$(".init-download-btn").click(function(){
+    var selectedPks = [];
+    var checkBoxes = $("#download-table tbody").find(".download-selector");
+    for( var i=0; i<checkBoxes.length; i++ ){
+        var cbx = checkBoxes[i];
+        if($(cbx).prop("checked") == true){
+            selectedPks.push($(cbx).attr("target"));
+        }
+    }
+    if(selectedPks.length > 0){
+        var destination = $(this).attr("destination");
+        console.log("dest: " + destination);
+        var data = {"resource_pks": selectedPks, "destination":destination};
+        var payload = {"data":JSON.stringify(data)};
+        console.log("data: " + data);
+        $.ajax({
+            url:"/transfers/download/init/",
+            method:"POST",
+            dataType: "json",
+            //data: JSON.stringify(data),
+            data: payload,
+            headers:{"X-CSRFToken": csrfToken},
+            success:function(response){
+                console.log('Download started!');
+            },
+            error:function(response){
+                console.log('error!');
+                console.log(response);
+            }
+        });
+    }else{
+        console.log("Nothing");
+    }
+
+});
+
+// End code related to javascript for downloads
+

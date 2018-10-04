@@ -36,7 +36,10 @@ import transfer_app.downloaders as _downloaders
 
 @login_required
 def index(request):
-    return render(request, 'transfer_app/index.html', {})
+    context = {}
+    providers = {'google_drive': settings.GOOGLE_DRIVE, 'dropbox':settings.DROPBOX}
+    context['providers'] = providers
+    return render(request, 'transfer_app/index.html', context)
 
 
 @api_view(['GET'])
@@ -331,7 +334,8 @@ class TransferComplete(APIView):
                     transfer_obj = Transfer.objects.get(pk=transfer_pk)
                     transfer_obj.completed = True
                     transfer_obj.success = success
-                    now = datetime.datetime.now()
+                    tz = transfer_obj.start_time.tzinfo
+                    now = datetime.datetime.now(tz)
                     duration = now - transfer_obj.start_time
                     transfer_obj.duration = duration
                     transfer_obj.finish_time = now
@@ -369,9 +373,11 @@ class InitDownload(generics.CreateAPIView):
         # Parse the submitted data:
         data = request.data
         try:
+            json_str = data['data'] # j is a json-format string
+            data = json.loads(json_str)
             resource_pks = data['resource_pks']
             download_destination = data['destination']
-        except KeyError as ex:                
+        except KeyError as ex:
             raise exceptions.RequestError('''
                 Missing required information for initiating transfer.
             ''')
@@ -381,7 +387,6 @@ class InitDownload(generics.CreateAPIView):
         # method call.  We do this since it is easiest to pass a simple native dictionary to celery. 
 
         user_pk = request.user.pk
-
         try:
             # Depending on which download destination was requested (and which compute environment we are in), grab the proper class:
             downloader_cls = _downloaders.get_downloader(download_destination)
