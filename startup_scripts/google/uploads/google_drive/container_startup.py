@@ -14,6 +14,7 @@ import google
 from google.cloud import storage
 from apiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+import google.oauth2.credentials
 
 WORKING_DIR = '/workspace'
 HOSTNAME_REQUEST_URL = 'http://metadata/computeMetadata/v1/instance/hostname'
