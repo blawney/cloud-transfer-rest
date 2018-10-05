@@ -400,8 +400,7 @@ class InitDownload(generics.CreateAPIView):
                 # stash the download info, since we will be redirecting through an authentication flow
                 request.session['download_info'] = download_info 
                 request.session['download_destination'] = download_destination
-
-                return downloader_cls.authenticate(request)
+                return Response({'success': True})
 
         except exceptions.ExceptionWithMessage as ex:
             raise exceptions.RequestError(ex.message)
@@ -410,6 +409,12 @@ class InitDownload(generics.CreateAPIView):
             response = exception_handler(ex, None)
 
         return Response({'message': 'thanks'})
+
+
+    def get(self, request, *args, **kwargs):
+        download_destination = request.session['download_destination']
+        downloader_cls = _downloaders.get_downloader(download_destination)
+        return downloader_cls.authenticate(request)
         
 
 class InitUpload(generics.CreateAPIView):

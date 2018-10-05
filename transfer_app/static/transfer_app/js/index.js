@@ -86,15 +86,20 @@ function parseDurationString(s){
         var hours = parseInt(time_contents[0]);
         var totalHours = 24*day + hours;
         var minutes = time_contents[1]; //not parsing as int keeps zero padding
-        var seconds = time_contents[2]; //not parsing as int keeps zero padding
+        var seconds_incl_ms = time_contents[2].split('.'); //not parsing as int keeps zero padding
+        var seconds = seconds_incl_ms[0];
         return `${totalHours}:${minutes}:${seconds}`;
     }else{
-        return s;
+        var time_contents = s.split(":");
+        var hours = time_contents[0];
+        var minutes = time_contents[1]; //not parsing as int keeps zero padding
+        var seconds_incl_ms = time_contents[2].split('.'); //not parsing as int keeps zero padding
+        var seconds = seconds_incl_ms[0];
+        return `${hours}:${minutes}:${seconds}`;
     }
 }
 
 function showDetail(pk){
-    console.log(history[pk]);
     var item = history[pk];
     var split_str = item['resource']['path'].split("/");
     var filename = split_str[split_str.length-1];
@@ -392,11 +397,10 @@ $(".init-download-btn").click(function(){
             url:"/transfers/download/init/",
             method:"POST",
             dataType: "json",
-            //data: JSON.stringify(data),
             data: payload,
             headers:{"X-CSRFToken": csrfToken},
             success:function(response){
-                console.log('Download started!');
+                window.open("https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ "/transfers/download/init/", "newWindow", "width=800,height=600");
             },
             error:function(response){
                 console.log('error!');
