@@ -421,9 +421,15 @@ class InitUpload(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         data = request.data
+        print(data)
         try:
             upload_source = data['upload_source'] # (dropbox, drive, etc)
             upload_info = data['upload_info']
+            print(upload_source)
+            print(upload_info)
+            print(str(upload_info))
+            upload_info = json.loads(upload_info)
+            #raise Exception('temp!');
         except KeyError as ex:
             raise exceptions.RequestError('The request JSON body did not contain the required data (%s).' % ex)
 
@@ -439,7 +445,7 @@ class InitUpload(generics.CreateAPIView):
 
             # Check that the upload data has the required format to work with this uploader implementation:
             upload_info, error_messages = uploader_cls.check_format(upload_info, user_pk)
-
+            print(upload_info)
             if len(error_messages) > 0:
                 return Response({'errors': error_messages})
             elif len(upload_info) > 0:
@@ -452,7 +458,8 @@ class InitUpload(generics.CreateAPIView):
             raise exceptions.RequestError(ex.message)
 
         except Exception as ex:
+            print('Exception: %s' % ex)
             response = exception_handler(ex, None)
-
+            return response
 
 

@@ -66,10 +66,12 @@ class Uploader(object):
 
         # for consistent handling, take any single upload requests and
         # put inside a list
+        print(upload_data)
         if isinstance(upload_data, dict):
             upload_data = [upload_data,]
 
         for item in upload_data:
+            print('item: %s' % item)
             cls._validate_ownership(item, requesting_user)
             cls._check_keys(item)
 

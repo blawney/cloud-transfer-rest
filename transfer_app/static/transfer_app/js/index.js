@@ -1,3 +1,4 @@
+
 //$.ajaxSettings.traditional = true;
 
 // function that retrieves the cookie with specified name. 
@@ -192,11 +193,29 @@ START Dropbox JS
 */
 
 // Below is code related to the chooser provided by Dropbox:
-var options = {
+var dbxOptions = {
 
     // Required. Called when a user selects an item in the Chooser.
     success: function(files) {
-        alert("Here's the file link: " + files[0].link)
+        var data = [];
+        for( var i=0; i < files.length; i++){
+            console.log(files[i].link + "(" + files[i].name + ","+ files[i].bytes + ")");
+            var f = files[i];
+            data.push({"path":f.link, "name":f.name, "size_in_bytes":f.bytes});
+        }
+
+        $.ajax({
+            url:"/transfers/upload/init/",
+            method:"POST",
+            data: {"upload_source":"Dropbox", "upload_info": JSON.stringify(data)},
+            headers:{"X-CSRFToken": csrfToken},
+            success:function(response){
+                console.log('upload started!');
+            },
+            error:function(){
+                console.log('error!');
+            }
+        });
     },
 
     // Optional. Called when the user closes the dialog without selecting a file
@@ -237,7 +256,7 @@ END Dropbox JS
 
 // The Browser API key obtained from the Google API Console.
 // Replace with your own Browser API key, or your own key.
-var developerKey = 'AIzaSyClJS75QXASJLLmb5dq8VPc0gjAusGfGnE';
+var developerKey = 'AIzaSyDa9MDiIXKdXbu8EWCD8rYHsW7FMiwnOXY';
 
 // The Client ID obtained from the Google API Console. Replace with your own Client ID.
 var clientId = "926067285135-erhkvspo559gq4gi6o9bnh8bf4n2njrq.apps.googleusercontent.com"
@@ -307,9 +326,27 @@ function createPicker() {
 
 // A simple callback implementation.
 function pickerCallback(data) {
-if (data.action == google.picker.Action.PICKED) {
-        var fileId = data.docs[0].id;
-        alert('The user selected: ' + fileId);
+    console.log(data);
+    if (data.action == google.picker.Action.PICKED) {
+        console.log(data.docs);
+        var d = [];
+        for( var i=0; i < data.docs.length; i++){
+            var f = data.docs[i];
+            d.push({"file_id":f.id, "name":f.name, "size_in_bytes":f.sizeBytes, "drive_token": oauthToken});
+        }
+
+        $.ajax({
+            url:"/transfers/upload/init/",
+            method:"POST",
+            data: {"upload_source":"Google Drive", "upload_info": JSON.stringify(d)},
+            headers:{"X-CSRFToken": csrfToken},
+            success:function(response){
+                console.log('upload started!');
+            },
+            error:function(){
+                console.log('error!');
+            }
+        });
     }
 }
 
@@ -378,6 +415,7 @@ $("#back-to-history").click(function(){
 
 // Below is code related to javascript for downloads.  When the user clicks on the button
 // JS needs to collect the info about what to send. 
+
 $(".init-download-btn").click(function(){
     var selectedPks = [];
     var checkBoxes = $("#download-table tbody").find(".download-selector");
@@ -415,3 +453,15 @@ $(".init-download-btn").click(function(){
 
 // End code related to javascript for downloads
 
+// Below is code related to javascript for uploads
+
+$(".init-upload-btn").click(function(){
+    var uploadSource = $(this).attr("upload-source");
+    if(uploadSource == 'dropbox'){
+        Dropbox.choose(dbxOptions);
+    } else if(uploadSource == 'google_drive'){
+        loadPicker();
+    }
+});
+
+//End code related to javascript for uploads
