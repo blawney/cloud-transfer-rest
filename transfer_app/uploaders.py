@@ -276,7 +276,7 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
                              --boot-disk-size={disk_size_gb}GB \
                              --metadata=google-logging-enabled=true \
                              --container-image={docker_image} \
-                             --no-restart-on-failure --container-restart-policy=never
+                             --no-restart-on-failure --container-restart-policy=never \
                            '''
 
     @classmethod

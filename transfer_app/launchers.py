@@ -10,7 +10,6 @@ class Launcher(object):
 class GoogleLauncher(Launcher):   
     def go(self, cmd):
         print('in go, got %s' % cmd)
-        raise Exception('intentional ex!')
         p = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
         stdout, stderr = p.communicate()
         if p.returncode != 0:

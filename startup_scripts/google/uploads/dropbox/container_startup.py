@@ -61,14 +61,15 @@ def send_to_bucket(local_filepath, params):
 	full_destination_w_prefix = params['destination']
 	full_destination = full_destination_w_prefix[len(GOOGLE_BUCKET_PREFIX):]
 	contents = full_destination.split('/')
-        bucket_name = contents[0]
+	bucket_name = contents[0]
 	object_name = '/'.join(contents[1:])
 
 	storage_client = storage.Client()
 	# trying to get an existing bucket.  If raises exception, means bucket did not exist (or similar)
 	try:
 		destination_bucket = storage_client.get_bucket(bucket_name)
-	except google.api_core.exceptions.BadRequest as ex:
+	except (google.api_core.exceptions.NotFound, google.api_core.exceptions.BadRequest) as ex:
+
 		# try to create the bucket:
 		try:
 			destination_bucket = storage_client.create_bucket(bucket_name)
@@ -86,16 +87,16 @@ def download_to_disk(params):
 	local_filepath is the path on the VM/container of the file that
 	will be downloaded.
 	'''
-        source_link = params['resource_path']
-        local_path = os.path.join(WORKING_DIR, 'download')
+	source_link = params['resource_path']
+	local_path = os.path.join(WORKING_DIR, 'download')
 	cmd = 'wget -q -O %s "%s"' % (local_path, source_link)
 	p = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 	stdout, stderr = p.communicate()
 	if p.returncode != 0:
-		print 'Failed on transfering %s' % source_link.split('/')[-1]
-		print stdout
-		print '--'*10
-		print stderr
+		print('Failed on transfering %s' % source_link.split('/')[-1])
+		print(stdout)
+		print('--'*10)
+		print(stderr)
 	else:
 		return local_path
 
@@ -131,7 +132,6 @@ def parse_args():
 	params['transfer_pk'] = args.transfer_pk
 	params['callback_url'] = args.callback_url
 	params['resource_path'] = args.resource_path
-	params['access_token'] = args.access_token
 	params['destination'] = args.destination
 	params['google_project_id'] = args.google_project_id
 	params['google_zone'] = args.google_zone
