@@ -61,14 +61,14 @@ def send_to_bucket(local_filepath, params):
 	full_destination_w_prefix = params['destination']
 	full_destination = full_destination_w_prefix[len(GOOGLE_BUCKET_PREFIX):]
 	contents = full_destination.split('/')
-        bucket_name = contents[0]
+	bucket_name = contents[0]
 	object_name = '/'.join(contents[1:])
 
 	storage_client = storage.Client()
 	# trying to get an existing bucket.  If raises exception, means bucket did not exist (or similar)
 	try:
 		destination_bucket = storage_client.get_bucket(bucket_name)
-	except google.api_core.exceptions.BadRequest as ex:
+	except (google.api_core.exceptions.BadRequest, google.api_core.exceptions.NotFound) as ex:
 		# try to create the bucket:
 		try:
 			destination_bucket = storage_client.create_bucket(bucket_name)
