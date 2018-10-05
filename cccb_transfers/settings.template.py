@@ -150,8 +150,8 @@ SITE_ID = 1
 # some identifiers for consistent reference:
 GOOGLE = 'google'
 AWS = 'aws'
-GOOGLE_DRIVE = 'google_drive'
-DROPBOX = 'dropbox'
+GOOGLE_DRIVE = 'Google Drive'
+DROPBOX = 'Dropbox'
 
 ####################
 
