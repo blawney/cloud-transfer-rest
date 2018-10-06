@@ -22,15 +22,18 @@ def take_inputs():
     cloud_environment = input('Which cloud provider? (google, aws): ')
     cloud_environment = cloud_environment.lower()
     if cloud_environment == 'google':
-        google_project = input('Enter the project ID: ')
+        google_project = input('Enter the Google project ID (NOT the numerical ID): ')
+        google_project_number = input('Enter the Google project number: ')
         google_zone = input('Enter the desired zone (e.g. "us-east1-b"): ')
 
         params['cloud_environment'] = cloud_environment
-        params['google_project'] = google_project 
+        params['google_project_id'] = google_project 
+        params['google_project_number'] = google_project_number 
         params['google_zone'] = google_zone
 
     elif cloud_environment == 'aws':
         print('Have not implemented AWS config')
+        sys.exit(0)
     else:
         sys.exit(1)
 
@@ -40,18 +43,24 @@ def take_inputs():
         use_at_least_one_service = True
         dropbox_client_id = input('Enter the Dropbox client ID: ')
         dropbox_secret = input('Enter the Dropbox secret: ')
-
         params['dropbox_client_id'] = dropbox_client_id
         params['dropbox_secret'] = dropbox_secret
+        print('***Ensure you have registered the callback URL with Dropbox***')
 
     use_drive = input('Are you connecting to Google Drive?: (y/n) ')[0].lower()
     if use_drive == 'y':
         use_at_least_one_service = True
         drive_client_id = input('Enter the Drive client ID: ')
         drive_secret = input('Enter the Drive secret: ')
-
+        drive_api_key = input('Enter the API key for Google Drive. '
+                              'Note that this is a public key used to identify '
+                              'your application to Google, in addition to the '
+                              'client ID/secret above.')
         params['drive_client_id'] = drive_client_id
         params['drive_secret'] = drive_secret
+        params['drive_api_key'] = drive_api_key
+        print('***Ensure you have registered the callback URL with Google Drive***')
+
 
     if not use_at_least_one_service:
         print('You need to select at least one storage provider.')
@@ -59,18 +68,21 @@ def take_inputs():
 
     accepted = False
     while not accepted:
-        storage_bucket_prefix = input('Enter a prefix for storage buckets that will be created (lowercase letters, numbers, and dashes are accepted): ')
+        storage_bucket_prefix = input('Enter a prefix for storage buckets that will '
+                                      'be created (lowercase letters, numbers, and dashes are accepted): ')
         m = re.match('[a-z0-9-]+', storage_bucket_prefix)
         if m.group() != storage_bucket_prefix:
-            print('We enforce stricter guidelines than the storage providers and only allow lowercase letters, numbers, and dashes.  Try again.')
+            print('We enforce stricter guidelines than the storage providers and only '
+                  'allow lowercase letters, numbers, and dashes.  Try again.')
         else:
             params['storage_bucket_prefix'] = storage_bucket_prefix
             accepted = True
 
     accepted = False
     while not accepted:
-        app_token = input('''Enter a series of characters (letters/numbers) that is a multiple of 8.  
-                              This should be relatively long, and allows worker machines to communicate with the main machine.  Enter:  ''')
+        app_token = input('Enter a series of characters (letters/numbers) that is a multiple of 8. '
+                          'This should be relatively long, and allows worker machines to communicate '
+                          'with the main machine.  Enter:  ')
         if (len(app_token.encode('utf-8')) % 8)  != 0:
             print('The token needs to be a multiple of 8 in length (when cast as a byte string).  Try again')
         else:
@@ -108,6 +120,7 @@ def fill_settings(params):
     else:
         print('Found multiple files matching the pattern %s.  This should not be the case' % pattern)
         sys.exit(1)
+
 
 if __name__ == '__main__':
     config_dir = os.path.join(os.environ['APP_ROOT'], 'config')
