@@ -356,7 +356,7 @@ class GoogleEnvironmentUploader(EnvironmentSpecificUploader, GoogleBase):
         callback_url = reverse('transfer-complete')
         current_site = Site.objects.get_current()
         domain = current_site.domain
-        full_callback_url = 'https://%s/%s' % (domain, callback_url)
+        full_callback_url = 'https://%s%s' % (domain, callback_url)
 
         docker_image = custom_config['docker_image']
 
