@@ -65,10 +65,12 @@ def populate():
         'xyz://dummy-bucket/file_2.txt',
         'https://dropbox-link/file_3.txt', # an upload from dropbox
         'https://dropbox-link/failed_upload.txt', # will be a FAILED upload from dropbox
-        'abcd1234', #mock the ID we get from Drive, which is effectively a path (upload)
+        'abcd1234/drive_upload.txt', #mock the ID we get from Drive, which is effectively a path (upload)
         'xyz://dummy-bucket/ongoing.txt', # will be an ongoing download to drive
         'xyz://dummy-bucket/failed_download.txt' # will be a failed dropbox download 
     ]
+
+    file_names = [os.path.basename(x) for x in inactive_resource_paths]
 
     destinations = [settings.DROPBOX,
         settings.DROPBOX,
@@ -87,12 +89,14 @@ def populate():
                                    day=random.randint(1,28)) for x in range(len(inactive_resource_sources))]
 
     inactive_resources = []
-    for src,p,s,d in zip(inactive_resource_sources, 
+    for src,p,s,d,f in zip(inactive_resource_sources, 
             inactive_resource_paths, 
             inactive_resource_sizes, 
-            inactive_resource_dates
+            inactive_resource_dates,
+            file_names
         ):
         r = Resource(path=p,
+            name = f,
             source=src,
             size=s,
             owner=test_user, 

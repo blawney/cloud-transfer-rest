@@ -53,8 +53,7 @@ $.ajax({
         for(var i=0; i<response.length; i++){
             var item = response[i];
             var size = humanFileSize(item['size']);
-            var split_str = item['path'].split("/");
-            var filename = split_str[split_str.length-1];
+            var filename = item['name'];
             markup += `<tr>
                       <td><input class="download-selector" type="checkbox" target="${item['id']}"/></td>
                       <td>${filename}</td>
@@ -102,8 +101,7 @@ function parseDurationString(s){
 
 function showDetail(pk){
     var item = history[pk];
-    var split_str = item['resource']['path'].split("/");
-    var filename = split_str[split_str.length-1];
+    var filename = item['resource']['name'];
     var startTime = parseDateString(item['start_time']);
     var direction = item['download'] ? "Download" : "Upload";
     var destination = "-";
@@ -155,8 +153,7 @@ $.ajax({
             var item = response[i];
             var pk = item['id'];
             history[pk] = item;
-            var split_str = item['resource']['path'].split("/");
-            var filename = split_str[split_str.length-1];
+            var filename = item['resource']['name'];
             markup += `<tr>
                       <td>${filename}</td>
                       <td><span class="detail-loader" detail-key="${pk}">View</span></td>

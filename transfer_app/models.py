@@ -21,6 +21,9 @@ class Resource(models.Model):
     # e.g. gs://bucket/dir/object.txt for google buckets
     path = models.CharField(max_length=1000, null=False)
     
+    # a human-readable name for the UI
+    name = models.CharField(max_length=1000, null=False)
+
     # the file size in bytes.  For display, this will be converted
     # to human-readable form  
     size = models.BigIntegerField(default=0)

@@ -105,6 +105,7 @@ class Uploader(object):
             r = Resource(
                 source = self.source,
                 path = item['path'],
+                name = item['name'],
                 owner = owner,
                 size = filesize_in_bytes
             )

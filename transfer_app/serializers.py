@@ -21,6 +21,7 @@ class ResourceSerializer(serializers.ModelSerializer):
         fields = ('id', \
                   'source', \
                   'path', \
+                  'name', \
                   'size', \
                   'owner', \
                   'is_active', \
