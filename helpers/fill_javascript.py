@@ -30,6 +30,8 @@ import django
 from django.conf import settings
 django.setup()
 
+from django.urls import reverse
+
 from jinja2 import Environment, FileSystemLoader
 
 # in the settings.STATIC_ROOT dir, there are subdirs for each
@@ -77,8 +79,27 @@ def get_params():
             d[key] = section[key]
     return d
 
+def get_urls():
+    '''
+    The javascript has some API endpoints and other URLs it needs to
+    access.  The actual URLs for those could change and we need the URLs
+    in the javascript to stay in-sync. Here, we use the 'reverse' functionality
+    from django to get the URLs by the NAME of the URLs.  This means you CANNOT
+    change the 'name' parameter in the url conf (any of the urls.py files)
+    This function returns a dictionary of URLs.  They keys are the names of the params
+    in the javascript template, and they point at the URLs.
+    '''
+    url_dict = {}
+    url_dict['resource_endpoint'] = reverse('resource-list')
+    url_dict['transferred_resources_endpoint'] = reverse('transferred-resource-list')
+    url_dict['upload_url'] = reverse('upload-transfer-initiation')
+    url_dict['download_url'] = reverse('download-transfer-initiation')
+    return url_dict
+
+
 if __name__ == '__main__':
     js_files = get_javascript_files()
     params = get_params()
+    params.update(get_urls())
     for js in js_files:
         fill_template(js, params)
