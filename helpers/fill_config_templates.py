@@ -55,7 +55,7 @@ def take_inputs():
         drive_api_key = input('Enter the API key for Google Drive. '
                               'Note that this is a public key used to identify '
                               'your application to Google, in addition to the '
-                              'client ID/secret above.')
+                              'client ID/secret above: ')
         params['drive_client_id'] = drive_client_id
         params['drive_secret'] = drive_secret
         params['drive_api_key'] = drive_api_key

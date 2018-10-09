@@ -51,4 +51,5 @@ python3 manage.py collectstatic
 # Also needs to have run collectstatic prior
 python3 helpers/fill_javascript.py
 
+echo "Create a super user:"
 python3 manage.py createsuperuser
