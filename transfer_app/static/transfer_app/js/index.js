@@ -1,6 +1,4 @@
 
-//$.ajaxSettings.traditional = true;
-
 // function that retrieves the cookie with specified name. 
 // Used to get the django-generated CSRF token for sending AJAX requests
 function getCookie(name) {
@@ -44,7 +42,7 @@ var csrfToken = getCookie('csrftoken');
 
 // Get the active resources for the download tab:
 $.ajax({
-    url:"/resources/?is_active=true",
+    url:"{{resource_endpoint}}/?is_active=true",
     type:"GET",
     headers:{"X-CSRFToken": csrfToken},
     success:function(response){
@@ -143,7 +141,7 @@ function showDetail(pk){
 // get the history
 var history = {}
 $.ajax({
-    url:"/transferred-resources/",
+    url:"{{transferred_resources_endpoint}}",
     type:"GET",
     headers:{"X-CSRFToken": csrfToken},
     success:function(response){
@@ -164,7 +162,6 @@ $.ajax({
         $(".detail-loader").click(function(e){
             e.preventDefault();
             var targetedDetail = $(this).attr("detail-key");
-            console.log("Show detail for " + targetedDetail);
             showDetail(targetedDetail);
         });
     },
@@ -196,21 +193,20 @@ var dbxOptions = {
     success: function(files) {
         var data = [];
         for( var i=0; i < files.length; i++){
-            console.log(files[i].link + "(" + files[i].name + ","+ files[i].bytes + ")");
             var f = files[i];
             data.push({"path":f.link, "name":f.name, "size_in_bytes":f.bytes});
         }
 
         $.ajax({
-            url:"/transfers/upload/init/",
+            url:"{{upload_url}}",
             method:"POST",
             data: {"upload_source":"Dropbox", "upload_info": JSON.stringify(data)},
             headers:{"X-CSRFToken": csrfToken},
             success:function(response){
-                console.log('upload started!');
+                console.log('Upload started.');
             },
             error:function(){
-                console.log('error!');
+                console.log('Error.');
             }
         });
     },
@@ -253,24 +249,23 @@ END Dropbox JS
 
 // The Browser API key obtained from the Google API Console.
 // Replace with your own Browser API key, or your own key.
-var developerKey = 'AIzaSyDa9MDiIXKdXbu8EWCD8rYHsW7FMiwnOXY';
+var developerKey = "{{drive_api_key}}";
 
 // The Client ID obtained from the Google API Console. Replace with your own Client ID.
-var clientId = "926067285135-erhkvspo559gq4gi6o9bnh8bf4n2njrq.apps.googleusercontent.com"
+var clientId = "{{drive_client_id}}"
 
 // Replace with your own project number from console.developers.google.com.
 // See "Project number" under "IAM & Admin" > "Settings"
-var appId = "926067285135";
+var appId = "{{google_project_number}}";
 
 // Scope to use to access user's Drive items.
-var scope = ['https://www.googleapis.com/auth/drive'];
+var scope = ["{{drive_scope}}"];
 
 var pickerApiLoaded = false;
 var oauthToken;
 
 // Use the Google API Loader script to load the google.picker script.
 function loadPicker() {
-    console.log('load picker!!');
     gapi.load('auth', {'callback': onAuthApiLoad});
     gapi.load('picker', {'callback': onPickerApiLoad});
 }
@@ -287,14 +282,11 @@ function onAuthApiLoad() {
 }
 
 function onPickerApiLoad() {
-    console.log('in OnPickerAPILoad');
     pickerApiLoaded = true;
     createPicker();
 }
 
 function handleAuthResult(authResult) {
-    console.log('handling auth ersults');
-    console.log(authResult);
     if (authResult && !authResult.error) {
         oauthToken = authResult.access_token;
         createPicker();
@@ -316,16 +308,13 @@ function createPicker() {
             .setDeveloperKey(developerKey)
             .setCallback(pickerCallback)
             .build();
-        console.log('going to make visible');
         picker.setVisible(true);
     }
 }
 
 // A simple callback implementation.
 function pickerCallback(data) {
-    console.log(data);
     if (data.action == google.picker.Action.PICKED) {
-        console.log(data.docs);
         var d = [];
         for( var i=0; i < data.docs.length; i++){
             var f = data.docs[i];
@@ -333,15 +322,15 @@ function pickerCallback(data) {
         }
 
         $.ajax({
-            url:"/transfers/upload/init/",
+            url:"{{upload_url}}",
             method:"POST",
             data: {"upload_source":"Google Drive", "upload_info": JSON.stringify(d)},
             headers:{"X-CSRFToken": csrfToken},
             success:function(response){
-                console.log('upload started!');
+                console.log('Upload started.');
             },
             error:function(){
-                console.log('error!');
+                console.log('Error.');
             }
         });
     }
@@ -360,7 +349,6 @@ $(".section-chooser").click(function(){
     // remove class from siblings:
     var sibs = $(this).siblings();
     for(var i=0; i<sibs.length; i++){
-        console.log(sibs[i]);
         $(sibs[i]).removeClass("selected");
     }
     // add selected class to this
@@ -387,17 +375,12 @@ $(".select-all-checkbox").click(function(){
     var targetedTable = $(this).attr("table-target");
     var inputs = $("#" + targetedTable).find("input");
 
-    console.log(targetedTable);
     if ($(this).prop("checked") == true){
-        console.log('was checked');
         $(inputs).each(function(number, el){
-            console.log(el);
             $(el).prop("checked", true);
         });
     }else{
-        console.log('Not checked!');
         $(inputs).each(function(number, el){
-            console.log(el);
             $(el).prop("checked", false);
         });                }
 
@@ -424,12 +407,10 @@ $(".init-download-btn").click(function(){
     }
     if(selectedPks.length > 0){
         var destination = $(this).attr("destination");
-        console.log("dest: " + destination);
         var data = {"resource_pks": selectedPks, "destination":destination};
         var payload = {"data":JSON.stringify(data)};
-        console.log("data: " + data);
         $.ajax({
-            url:"/transfers/download/init/",
+            url:"{{download_url}}",
             method:"POST",
             dataType: "json",
             data: payload,
@@ -438,12 +419,11 @@ $(".init-download-btn").click(function(){
                 window.open("https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ "/transfers/download/init/", "newWindow", "width=800,height=600");
             },
             error:function(response){
-                console.log('error!');
-                console.log(response);
+                console.log('Error.');
             }
         });
     }else{
-        console.log("Nothing");
+        console.log("Nothing to do- no resources selected.");
     }
 
 });
