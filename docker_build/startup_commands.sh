@@ -16,10 +16,7 @@ cp live_tests.template.cfg live_tests.cfg
 
 cd $APP_ROOT
 
-# Need to add parameters (e.g. api key) into javascript file:
-python3 helpers/fill_javascript.py
-
-# create log dir:
+# create log dir and touch log files:
 export LOGDIR="/var/log/transfer_app"
 export CELERY=$(which celery)
 mkdir -p $LOGDIR
@@ -44,5 +41,14 @@ python3 manage.py migrate
 
 # add some content for non-trivial views (using the test account)
 python3 helpers/populate_and_prep_db.py
+
+# Run collectstatic so the static assets will be in a single location:
+python3 manage.py collectstatic
+
+# Need to add parameters (e.g. api key) into javascript file:
+# Note that this needs to happen after the template configs above,
+# as this script pulls details that were filled into the config files.
+# Also needs to have run collectstatic prior
+python3 helpers/fill_javascript.py
 
 python3 manage.py createsuperuser
