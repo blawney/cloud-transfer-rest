@@ -42,7 +42,7 @@ var csrfToken = getCookie('csrftoken');
 
 // Get the active resources for the download tab:
 $.ajax({
-    url:"{{resource_endpoint}}/?is_active=true",
+    url:"{{resource_endpoint}}?is_active=true",
     type:"GET",
     headers:{"X-CSRFToken": csrfToken},
     success:function(response){
@@ -416,7 +416,7 @@ $(".init-download-btn").click(function(){
             data: payload,
             headers:{"X-CSRFToken": csrfToken},
             success:function(response){
-                window.open("https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ "/transfers/download/init/", "newWindow", "width=800,height=600");
+                window.open("https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ "{{download_url}}", "newWindow", "width=800,height=600");
             },
             error:function(response){
                 console.log('Error.');
@@ -434,9 +434,9 @@ $(".init-download-btn").click(function(){
 
 $(".init-upload-btn").click(function(){
     var uploadSource = $(this).attr("upload-source");
-    if(uploadSource == 'dropbox'){
+    if(uploadSource == '{{dropbox}}'){
         Dropbox.choose(dbxOptions);
-    } else if(uploadSource == 'google_drive'){
+    } else if(uploadSource == '{{google_drive}}'){
         loadPicker();
     }
 });

@@ -97,9 +97,13 @@ def get_urls():
     return url_dict
 
 
+def get_other_params():
+    return {'dropbox': settings.DROPBOX, 'google_drive': settings.GOOGLE_DRIVE}
+
 if __name__ == '__main__':
     js_files = get_javascript_files()
     params = get_params()
     params.update(get_urls())
+    params.update(get_other_params())
     for js in js_files:
         fill_template(js, params)
