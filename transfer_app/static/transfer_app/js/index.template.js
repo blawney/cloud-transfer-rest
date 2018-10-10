@@ -139,38 +139,40 @@ function showDetail(pk){
 }
 
 // get the history
-var history = {}
-$.ajax({
-    url:"{{transferred_resources_endpoint}}",
-    type:"GET",
-    headers:{"X-CSRFToken": csrfToken},
-    success:function(response){
-        var tableBody = $("#history-table tbody");
-        var markup = "";
-        for(var i=0; i<response.length; i++){
-            var item = response[i];
-            var pk = item['id'];
-            history[pk] = item;
-            var filename = item['resource']['name'];
-            markup += `<tr>
+get_history = function(){
+    var history = {}
+    $.ajax({
+        url:"{{transferred_resources_endpoint}}",
+        type:"GET",
+        headers:{"X-CSRFToken": csrfToken},
+        success:function(response){
+            var tableBody = $("#history-table tbody");
+            var markup = "";
+            for(var i=0; i<response.length; i++){
+                var item = response[i];
+                var pk = item['id'];
+                history[pk] = item;
+                var filename = item['resource']['name'];
+                markup += `<tr>
                       <td>${filename}</td>
                       <td><span class="detail-loader" detail-key="${pk}">View</span></td>
                     </tr>`;
+            }
+            tableBody.empty().append(markup);
+
+            $(".detail-loader").click(function(e){
+                e.preventDefault();
+                var targetedDetail = $(this).attr("detail-key");
+                showDetail(targetedDetail);
+            });
+        },
+        error:function(){
+            console.log('error!');
         }
-        tableBody.append(markup);
+    });
+}
 
-        $(".detail-loader").click(function(e){
-            e.preventDefault();
-            var targetedDetail = $(this).attr("detail-key");
-            showDetail(targetedDetail);
-        });
-    },
-    error:function(){
-        console.log('error!');
-    }
-});
-
-
+get_history();
 
 /* 
 ******************************************************
@@ -386,8 +388,13 @@ $(".select-all-checkbox").click(function(){
 
 });
 
+$("#refresh-history").click(function(){
+    get_history();
+});
+
 
 $("#back-to-history").click(function(){
+    get_history();
     $("#history-detail-section").toggle();
     $("#history").toggle();
 });

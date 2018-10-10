@@ -80,6 +80,12 @@ p {
     cursor:pointer;
 }
 
+#refresh-history{
+    margin-top:15px;
+    text-decoration: underline;
+    cursor:pointer;
+}
+
 #back-to-history{
     cursor:pointer;
 }

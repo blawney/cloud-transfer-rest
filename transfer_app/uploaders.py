@@ -107,7 +107,8 @@ class Uploader(object):
                 path = item['path'],
                 name = item['name'],
                 owner = owner,
-                size = filesize_in_bytes
+                size = filesize_in_bytes,
+                is_active=False # otherwise it will present the file for re-download
             )
             r.save()
 
