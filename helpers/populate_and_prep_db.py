@@ -38,7 +38,10 @@ def populate():
  
     for f,s in zip(file_list, size_list):
         print('Creating resource for path=%s' % f)
+        basename = os.path.basename(f)
         r = Resource(path=f,
+            name = basename,
+            source = settings.GOOGLE,
             size=s,
             owner=test_user
         )
