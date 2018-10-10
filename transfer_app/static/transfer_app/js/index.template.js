@@ -138,9 +138,11 @@ function showDetail(pk){
     $("#history-detail-section").show();
 }
 
+// need this in the global scope
+var history = {};
+
 // get the history
 get_history = function(){
-    var history = {}
     $.ajax({
         url:"{{transferred_resources_endpoint}}",
         type:"GET",
