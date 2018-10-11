@@ -131,6 +131,18 @@ p {
     border-top:3px solid #00bf00;
 }
 
+#identity{
+    display:flex;
+    justify-content: flex-end;
+    margin-bottom:20px;
+}
+
+.login-status{
+    background-color: rgb(240,240,240);
+    padding:10px;
+    color:rgb(80,80,80);
+    border-radius:10px;
+}
 
 #menu{
     display: flex;
