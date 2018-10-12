@@ -24,7 +24,27 @@ a{
 
 #wrapper{
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    
+}
+
+#logout-div{
+    width:95%;
+    display:flex;
+    flex-direction:row;
+    justify-content:flex-end;
+}
+
+#logout-text{
+    display:flex;
+    align-items: center;
+}
+
+#svg-wrapper-logout{
+    width:40px;
+    margin-left:10px;
+    cursor:pointer;
 }
 
 .subcontent{
@@ -118,6 +138,7 @@ a{
     box-shadow: 0 6px 12px rgba(0,0,0,.175);
     -moz-box-shadow: 0 6px 12px rgba(0,0,0,.175);
     background-clip: padding-box;
+    margin-top:5px;
 
     /*padding-bottom:20px;*/
     
@@ -206,7 +227,6 @@ a{
         flex-direction: row;
         justify-content: center;
         align-items:flex-start;
-	margin-top:100px;
     }
     
     #content{
@@ -264,6 +284,10 @@ a{
 
 @media (min-width: 991.98px) {
     #main-container{
+        width: 990px;
+    }
+
+    #logout-div{
         width: 990px;
     }
 }

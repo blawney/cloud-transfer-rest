@@ -451,3 +451,8 @@ $(".init-upload-btn").click(function(){
 });
 
 //End code related to javascript for uploads
+
+
+$("#svg-wrapper-logout").click(function(){
+    window.location.href="https://"+ window.location.hostname + (window.location.port ? ':' + window.location.port: '')+ "{{logout_url}}"
+});
