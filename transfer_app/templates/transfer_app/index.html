@@ -90,8 +90,8 @@
                 </div>
                 <div id="profile" class="subcontent">
                     <h3>Profile</h3>
-                    <p>Email: {{request.user.email}}</p>
-                    <p>Email: {{request.user}}</p>
+                    <p><span class="bold">Email:</span> {{request.user.email}}</p>
+                    <p><a href="{% url 'password_change' %}">Change password</a></p>
                 </div>
                 <div id="history-detail-section" class="subcontent">
                         <table id="history-detail-table" class="custom-table">
