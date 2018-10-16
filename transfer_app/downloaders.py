@@ -14,6 +14,7 @@ import datetime
 import copy
 
 from django.conf import settings
+from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.contrib.sites.models import Site
@@ -193,7 +194,7 @@ class DropboxDownloader(Downloader):
 
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
-            return HttpResponse('OK')
+            return render(request, 'transfer_app/download_started.html', {})
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -278,8 +279,7 @@ class DriveDownloader(Downloader):
 
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
-
-            return HttpResponse('OK')
+            return render(request, 'transfer_app/download_started.html', {})
         else:
             raise MethodNotAllowed('Method not allowed.')
 
