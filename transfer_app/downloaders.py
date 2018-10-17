@@ -194,7 +194,7 @@ class DropboxDownloader(Downloader):
 
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
-            return render(request, 'transfer_app/download_started.html', {})
+            return render(request, 'transfer_app/download_started.html', {'email_enabled': settings.EMAIL_ENABLED})
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -279,7 +279,7 @@ class DriveDownloader(Downloader):
 
             # call async method:
             transfer_tasks.download.delay(download_info, request.session['download_destination'])
-            return render(request, 'transfer_app/download_started.html', {})
+            return render(request, 'transfer_app/download_started.html', {'email_enabled': settings.EMAIL_ENABLED})
         else:
             raise MethodNotAllowed('Method not allowed.')
 

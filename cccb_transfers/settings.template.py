@@ -200,4 +200,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+# if using gmail, need to establish credentials
+# can be blank
 EMAIL_CREDENTIALS_FILE = '{{email_credentials_json}}'
+EMAIL_ENABLED = {{email_enabled}}

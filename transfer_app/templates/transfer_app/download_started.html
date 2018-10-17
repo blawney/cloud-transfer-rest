@@ -8,8 +8,34 @@
 
         	<title>File Transfer</title>
 		<link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+                <style>
+                    body{
+                        font-family: 'Raleway', sans-serif;
+                        color:rgb(80,80,80);
+                    }
+                    .success{
+                        color:#155274;
+                        background-color:#d4edda;
+                        border:1 px solid #c3e6cb;
+                        padding:.75rem 1.25rem;
+                        border-radius:.25rem;
+                        max-width:500px;
+                        margin-top:50px;
+                        margin-left:auto;
+                        margin-right:auto;
+                    }
+                </style>
 	</head>
 	<body>
-            Your download has started. You can refresh the page, or wait until you receive an email upon completion (if email notifications are enabled).
+            <div class="success">
+                {% if email_enabled %}
+                    Your download has started. You can refresh the history tab to check progress, or wait until you receive an email upon completion.
+                {% else %}
+                    Your download has started. You can refresh the history tab to check on progress.
+                {% endif %}
+                <br/>
+                <br/>
+                You may close this window.
+            </div>
         </body>
 </html>

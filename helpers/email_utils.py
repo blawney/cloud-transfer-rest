@@ -15,7 +15,6 @@ from google.oauth2.credentials import Credentials
 def send_email(plaintext_msg, message_html, recipient, subject):
 
     j = json.load(open(settings.EMAIL_CREDENTIALS_FILE))
-    print(j)
     credentials = Credentials(j['token'],
                       refresh_token=j['refresh_token'], 
                       token_uri=j['token_uri'], 
@@ -25,7 +24,7 @@ def send_email(plaintext_msg, message_html, recipient, subject):
 
     service = discovery.build('gmail', 'v1', credentials = credentials)
 
-    sender = 'brian'
+    sender = '---'
     message = MIMEMultipart('alternative')
 
     # create the plaintext portion

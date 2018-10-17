@@ -9,15 +9,13 @@ class Launcher(object):
 
 class GoogleLauncher(Launcher):   
     def go(self, cmd):
-        print('in go, got %s' % cmd)
+        print('Launch: %s' % cmd)
         p = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
         stdout, stderr = p.communicate()
         if p.returncode != 0:
-            print('problem')
+            print('There was a problem:')
             print('stdout: %s' % stdout)
             print('stderr: %s' % stderr)
-        else:
-            print('ok')
 
 
 class AWSLauncher(Launcher):

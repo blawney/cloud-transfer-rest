@@ -1,7 +1,12 @@
 from django.contrib.auth.forms import PasswordResetForm
 from django.template import loader
 
-from custom_auth.email_utils import send_email
+import sys
+import os
+sys.path.append(os.path.realpath('helpers'))
+
+from email_utils import send_email
+
 
 class CustomPasswordResetForm(PasswordResetForm):
 

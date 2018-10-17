@@ -11,7 +11,9 @@
                 
                 <button class="btn btn-primary" id="submit-btn" type="submit">Login</button>
             </form>
-            <a href="{% url 'password_reset' %}">Forgot password?</a>
+            {% if reset_enabled %}
+                <a href="{% url 'password_reset' %}">Forgot password?</a>
+            {% endif %}
                 {% if form.errors %}
                     <p class="alert alert-danger pad-top">
                         Your username and password did not match our records. 

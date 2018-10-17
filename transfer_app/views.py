@@ -351,7 +351,8 @@ class TransferComplete(APIView):
                         tc.completed = True
                         tc.finish_time = datetime.datetime.now()
                         tc.save()
-                        utils.post_completion(tc)
+                        all_originators = list(set([x.originator.email for x in all_transfers]))
+                        utils.post_completion(tc, all_originators)
                     return Response({'message': 'thanks'})
                 except ObjectDoesNotExist as ex:
                     raise exceptions.RequestError('Transfer with pk=%d did not exist' % transfer_pk)
@@ -395,7 +396,7 @@ class InitDownload(generics.CreateAPIView):
             download_info, error_messages = downloader_cls.check_format(resource_pks, user_pk)
 
             if len(error_messages) > 0:
-                return Response({'errors': error_messages})
+                return Response({'errors': error_messages}, status=409)
             else:
                 # stash the download info, since we will be redirecting through an authentication flow
                 request.session['download_info'] = download_info 
@@ -421,13 +422,9 @@ class InitUpload(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         data = request.data
-        print(data)
         try:
             upload_source = data['upload_source'] # (dropbox, drive, etc)
             upload_info = data['upload_info']
-            print(upload_source)
-            print(upload_info)
-            print(str(upload_info))
             upload_info = json.loads(upload_info)
             #raise Exception('temp!');
         except KeyError as ex:
@@ -445,7 +442,6 @@ class InitUpload(generics.CreateAPIView):
 
             # Check that the upload data has the required format to work with this uploader implementation:
             upload_info, error_messages = uploader_cls.check_format(upload_info, user_pk)
-            print(upload_info)
             if len(error_messages) > 0:
                 return Response({'errors': error_messages})
             elif len(upload_info) > 0:

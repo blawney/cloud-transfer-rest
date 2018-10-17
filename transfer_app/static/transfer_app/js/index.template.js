@@ -405,6 +405,25 @@ $("#back-to-history").click(function(){
 // Below is code related to javascript for downloads.  When the user clicks on the button
 // JS needs to collect the info about what to send. 
 
+showErrorDialog = function(obj_array){
+     console.log('show dialog');
+     console.log(obj_array);
+     var dialog = $("#error-dialog");
+     var subdiv = $("#error-dialog-list")
+     var markup = "";
+     for(var i=0; i<obj_array.length; i++){
+         markup += "<p>"+ obj_array[i] +"</p>"
+     }
+     subdiv.empty().append(markup);
+     $("#wrapper").toggleClass("blur");
+     dialog.toggle();
+}
+ 
+$("#close-error-dialog").click(function(){
+     $("#wrapper").toggleClass("blur");
+     $("#error-dialog").toggle();
+});
+
 $(".init-download-btn").click(function(){
     var selectedPks = [];
     var checkBoxes = $("#download-table tbody").find(".download-selector");
@@ -429,6 +448,8 @@ $(".init-download-btn").click(function(){
             },
             error:function(response){
                 console.log('Error.');
+                var jsonResponse = response['responseJSON'];
+                showErrorDialog(jsonResponse['errors']);
             }
         });
     }else{

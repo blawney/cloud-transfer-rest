@@ -1,11 +1,18 @@
 import configparser
+import os
+import sys
+
+from jinja2 import Environment, FileSystemLoader
 
 from django.conf import settings
 from django.http import Http404
+from django.contrib.sites.models import Site
 
 from transfer_app.models import Resource, Transfer, TransferCoordinator
 import transfer_app.launchers as _launchers
 
+sys.path.append(os.path.realpath('helpers'))
+from email_utils import send_email
 
 def load_config(config_filepath, config_keys=[]):
     '''
@@ -30,8 +37,30 @@ def load_config(config_filepath, config_keys=[]):
     return d
 
 
-def post_completion(transfer_coordinator):
-    print('completed the transfers')
+def post_completion(transfer_coordinator, originator_emails):
+    '''
+    transfer_coordinator is a TransferCoordinator instance
+    originator_emails is a list of email addresses for the originator(s) of
+      the transfers
+    '''
+
+    if settings.EMAIL_ENABLED:
+        current_site = Site.objects.get_current()
+        domain = current_site.domain
+    
+        email_subject = open(os.path.join(settings.CONFIG_DIR, 'transfer_complete_subject.txt')).read().strip()
+
+        # get the templates and fill them out:
+        env = Environment(loader=FileSystemLoader(settings.CONFIG_DIR))
+        plaintext_template = env.get_template('transfer_complete_message.txt')
+        html_template = env.get_template('transfer_complete_message.html')
+
+        params = {'domain': domain}
+        plaintext_msg = plaintext_template.render(params)
+        html_msg = html_template.render(params)
+    
+        for email in originator_emails:
+            send_email(plaintext_msg, html_msg, email, email_subject)
 
 
 def get_or_create_upload_location(user):

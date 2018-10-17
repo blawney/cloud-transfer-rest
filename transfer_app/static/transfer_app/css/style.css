@@ -42,6 +42,38 @@ a{
     align-items: center;
 }
 
+.blur {
+        -webkit-filter: blur(3px);
+        -moz-filter: blur(3px);
+        filter: blur(3px);
+}
+
+#close-error-dialog{
+    display:flex;
+    justify-content:center;
+    text-decoration: underline;
+    cursor:pointer;
+}
+
+#error-dialog{
+    display:none;
+    width: 500px;
+    height: 200px;
+    background: #fff;
+    padding: 25px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin-left: -250px;
+    margin-top: -100px;
+    display: none;
+    position:absolute;
+}
+
 #svg-wrapper-logout{
     width:40px;
     margin-left:10px;
