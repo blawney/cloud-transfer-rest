@@ -1,3 +1,5 @@
+import json
+
 from django.test import TestCase
 import unittest.mock as mock
 from rest_framework.test import APIClient
@@ -73,6 +75,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'path': 'https://dropbox-link.com/1', 'name':'f1.txt'})
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_source':'junk', 'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -92,6 +95,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'pathS': 'https://dropbox-link.com/1', 'name':'f1.txt'})
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_source':settings.DROPBOX, 'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -111,6 +115,7 @@ class DropboxGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'pathS': 'https://dropbox-link.com/1', 'name':'f1.txt'})
         upload_info.append({'path': 'https://dropbox-link.com/2', 'name':'f2.txt'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -398,6 +403,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'file_id': 'abc123', 'name':'f1.txt', 'drive_token': 'fooToken'})
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'drive_token': 'fooToken'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_source':'junk', 'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -417,6 +423,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'file_idS': 'abc123', 'name':'f1.txt', 'drive_token': 'fooToken'})
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'drive_token': 'fooToken'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_source':settings.GOOGLE_DRIVE, 'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -436,6 +443,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         upload_info = []
         upload_info.append({'file_id': 'abc123', 'name':'f1.txt', 'drive_token': 'fooToken'})
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'drive_token': 'fooToken'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')
@@ -471,6 +479,7 @@ class DriveGoogleUploadInitTestCase(TestCase):
         # named 'token' instead of drive_token
         upload_info.append({'file_id': 'abc123', 'name':'f1.txt', 'token': 'fooToken'})
         upload_info.append({'file_id': 'def123', 'name':'f2.txt', 'token': 'fooToken'})
+        upload_info = json.dumps(upload_info)
         request_dict = {'upload_source':settings.GOOGLE_DRIVE, 'upload_info': upload_info}
         url = reverse('upload-transfer-initiation')
         response = client.post(url, request_dict, format='json')

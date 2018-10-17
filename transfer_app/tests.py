@@ -179,6 +179,7 @@ class ResourceCreateTestCase(TestCase):
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
                 'path': 'gs://foo/bar/baz.txt', \
+                'name': 'baz.txt', \
                 'size':500, \
                 'owner': adminuser_pk, \
                 'is_active': True,
@@ -202,6 +203,7 @@ class ResourceCreateTestCase(TestCase):
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
                 'path': 'gs://foo/bar/baz.txt', \
+                'name': 'baz.txt', \
                 'size':500, \
                 'owner': reguser_pk, \
                 'is_active': True,
@@ -229,6 +231,7 @@ class ResourceCreateTestCase(TestCase):
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
                 'path': 'gs://foo/bar/baz.txt', \
+                'name': 'baz.txt', \
                 'size':500, \
                 'owner': reguser_pk, \
                 'is_active': True,
@@ -255,6 +258,7 @@ class ResourceCreateTestCase(TestCase):
         url = reverse('resource-list')
         data = {'source': 'google_bucket', \
                 'path': 'gs://foo/bar/baz.txt', \
+                'name': 'baz.txt', \
                 'size':500, \
                 'owner': adminuser_pk, \
                 'is_active': True,
