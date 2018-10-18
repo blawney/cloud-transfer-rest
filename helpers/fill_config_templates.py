@@ -19,6 +19,7 @@ def take_inputs():
     domain = input('Enter your domain.  Note that callbacks will often not work with raw IPs : ')
     params['domain'] = domain
 
+    print('\n\n\n')
     cloud_environment = input('Which cloud provider? (google, aws): ')
     cloud_environment = cloud_environment.lower()
     if cloud_environment == 'google':
@@ -38,6 +39,7 @@ def take_inputs():
         sys.exit(1)
 
     use_at_least_one_service = False
+    print('\n\n\n')
     use_dropbox = input('Are you connecting to Dropbox?: (y/n) ')[0].lower()
     if use_dropbox == 'y':
         use_at_least_one_service = True
@@ -47,6 +49,7 @@ def take_inputs():
         params['dropbox_secret'] = dropbox_secret
         print('***Ensure you have registered the callback URL with Dropbox***')
 
+    print('\n\n\n')
     use_drive = input('Are you connecting to Google Drive?: (y/n) ')[0].lower()
     if use_drive == 'y':
         use_at_least_one_service = True
@@ -67,6 +70,7 @@ def take_inputs():
         sys.exit(1)
 
     accepted = False
+    print('\n\n\n')
     while not accepted:
         storage_bucket_prefix = input('Enter a prefix for storage buckets that will '
                                       'be created (lowercase letters, numbers, and dashes are accepted): ')
@@ -79,6 +83,7 @@ def take_inputs():
             accepted = True
 
     accepted = False
+    print('\n\n\n')
     while not accepted:
         app_token = input('Enter a series of characters (letters/numbers) that is a multiple of 8. '
                           'This should be relatively long, and allows worker machines to communicate '
@@ -90,6 +95,7 @@ def take_inputs():
             accepted = True
 
     accepted = False
+    print('\n\n\n')
     while not accepted:
         app_token_key = input('Enter a series of 8 characters (letters/numbers) to be used for encryptping the token: ')
         if len(app_token_key.encode('utf-8')) != 8:
@@ -99,6 +105,7 @@ def take_inputs():
             accepted = True
 
     accepted=False
+    print('\n\n\n')
     while not accepted:
         use_email = input('Will you be using email notifications? '
                           'You will still need to setup any credentials.  Instructions for Gmail integration '
