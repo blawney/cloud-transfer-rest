@@ -161,22 +161,23 @@ docker pull docker.io/blawney/transfer_app
 Run the container:
 
 ```
-docker run -v /www:/host_mount docker.io/blawney/transfer_app
+docker run -it -v /www:/host_mount docker.io/blawney/transfer_app
 ```
-Note the paths in the `-v` argument where we mount the `/www` directory in the container.  Above, in the nginx configuration, we specified that the application would be available from the `/www` directory via the unix socket at `/www/dev.sock`.  Hence, we make that directory available to the container.  Change this as appropriate.
+Note the `-it` arg, which logs you into an interative terminal inside the container.  Also note the paths in the `-v` argument where we mount the `/www` directory in the container.  Above, in the nginx configuration, we specified that the application would be available from the `/www` directory via the unix socket at `/www/dev.sock`.  Hence, we make that directory available to the container.  Change this to match your nginx config as appropriate.
 
-That command will start the container and walk through a series of prompts to setup the application.  This includes the various application keys/secrets for your storage providers.  After a few moments, the application should be started and you can try out your live test.
+That command will start the container and you will be logged in as root in a bash shell.  Next, we need to run a startup script, which will prompt for some parameters to "inject" into various configuration files.  Run,
 
-Note that if you wish to enable email for notifications and password-reset functionality, see additional notes below.
+```
+/opt/startup/startup_commands.sh
+```
+and answer the questions.  After a few moments, the application server (gunicorn)should be started and you can try out your live test.
 
-If you desire additional customization, or need to edit the running container (and know what you are doing), you can also login interactively.  To start a new container, simply change the entrypoint:
+If you are integrating email functionality (to allow notifications and password-resets), you will need to stop the application server with Ctrl+C.  Then, follow the instructions below (e.g. for incorporating Gmail) and restart the application server with
+
 ```
-docker run -it  -v /www:/host_mount --entrypoint=/bin/bash docker.io/blawney/transfer_app
+gunicorn cccb_transfer.wsgi:application --bind=unix:/host_mount/dev.sock
 ```
-Or, to change  a running container:
-```
-docker exec -it <container ID> /bin/bash
-```
+
 
 #### Additional notes and remarks:
 
