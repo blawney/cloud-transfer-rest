@@ -21,6 +21,10 @@ from django.contrib.sites.models import Site
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import MethodNotAllowed
 
+import dropbox
+import google.oauth2.credentials
+from googleapiclient.discovery import build
+
 import transfer_app.utils as utils
 from transfer_app.base import GoogleBase, AWSBase
 from transfer_app import tasks as transfer_tasks
@@ -189,12 +193,62 @@ class DropboxDownloader(Downloader):
             except KeyError as ex:
                 raise exceptions.ExceptionWithMessage('There was no download_info registered with the session')
 
-            for item in download_info:
-                item['access_token'] = access_token
+            # need to check that the user has enough space in their Dropbox account
+            dbx = dropbox.dropbox.Dropbox(access_token)
+            space_usage = dbx.users_get_space_usage()
+            if space_usage.allocation.is_team():
+                used_in_bytes = space_usage.allocation.get_team().used
+                space_allocation_in_bytes = space_usage.allocation.get_team().allocated
+                space_remaining_in_bytes = space_allocation_in_bytes - used_in_bytes
+            else:
+                used_in_bytes = space_usage.used
+                space_allocation_in_bytes = space_usage.allocation.get_individual().allocated
+                space_remaining_in_bytes = space_allocation_in_bytes - used_in_bytes
 
-            # call async method:
-            transfer_tasks.download.delay(download_info, request.session['download_destination'])
-            return render(request, 'transfer_app/download_started.html', {'email_enabled': settings.EMAIL_ENABLED})
+            running_total = 0
+            at_least_one_transfer = False
+
+            # iterate through the transfers, add the token, and check a running total
+            # note that we do not do any optimization to maximize the number of transfers
+            # in the case that the space is not sufficient for all files.
+            passing_items = []
+            failed_items = []
+            problem = False
+            for item in download_info:
+                size_in_bytes = Resource.objects.get(pk=item['resource_pk']).size
+                running_total += size_in_bytes
+                if running_total < space_remaining_in_bytes:
+                    item['access_token'] = access_token
+                    passing_items.append(item)
+                else:
+                    problem = True
+                    failed_items.append(item)
+
+            at_least_one_transfer = len(passing_items) > 0
+            if not problem:
+                # call async method:
+                transfer_tasks.download.delay(passing_items, request.session['download_destination'])
+                context = {'email_enabled': settings.EMAIL_ENABLED, 
+                    'problem': problem, 
+                    'at_least_one_transfer':at_least_one_transfer
+                }
+                return render(request, 'transfer_app/download_started.html', context)
+            else:
+                # if there was a problem-- could not fit all files
+                # Still initiate the good transfers
+                if len(passing_items) > 0:
+                    transfer_tasks.download.delay(passing_items, request.session['download_destination'])
+                warning_list = []
+                for item in failed_items:
+                    resource_name = Resource.objects.get(pk=item['resource_pk']).name
+                    warning_list.append('Not enough space in your Dropbox for file %s' % resource_name)
+                context = {
+                    'email_enabled': settings.EMAIL_ENABLED,
+                    'problem': problem,
+                    'at_least_one_transfer':at_least_one_transfer,
+                    'warnings': warning_list
+                }
+                return render(request, 'transfer_app/download_started.html', context)
         else:
             raise MethodNotAllowed('Method not allowed.')
 
@@ -274,12 +328,71 @@ class DriveDownloader(Downloader):
             except KeyError as ex:
                 raise exceptions.ExceptionWithMessage('There was no download_info registered with the session')
 
-            for item in download_info:
+            # ensure we have enough space to push the file(s):
+            credentials = google.oauth2.credentials.Credentials(access_token)
+            drive_service = build('drive', 'v3', credentials=credentials)
+            about = drive_service.about().get(fields='storageQuota').execute()
+            try:
+                total_bytes = int(about['storageQuota']['limit'])
+                unlimited = False
+            except KeyError as ex:
+                # per the docs, if the 'limit' field is not there, there is "unlimited" storage
+                unlimited = True
+            used_bytes = int(about['storageQuota']['usage'])
+            print(total_bytes)
+            print(used_bytes)
+            if not unlimited:
+                space_remaining_in_bytes = total_bytes - used_bytes
+
+            running_total = 0
+            at_least_one_transfer = False
+            failed_items = []
+            passing_items = []
+            problem = False
+
+            if not unlimited:
+                # iterate through the transfers, add the token, and check a running total
+                # note that we do not do any optimization to maximize the number of transfers
+                # in the case that the space is not sufficient for all files.
+                for item in download_info:
+                    size_in_bytes = Resource.objects.get(pk=item['resource_pk']).size
+                    running_total += size_in_bytes
+                    if (running_total < space_remaining_in_bytes):
+                        passing_items.append(item)
+                    else:
+                        problem = True
+                        failed_items.append(item)
+            else: # if unlimited storage, just 'pass' all the downloads through
+                passing_items = download_info
+
+            for item in passing_items:
                 item['access_token'] = access_token
 
-            # call async method:
-            transfer_tasks.download.delay(download_info, request.session['download_destination'])
-            return render(request, 'transfer_app/download_started.html', {'email_enabled': settings.EMAIL_ENABLED})
+            at_least_one_transfer = len(passing_items) > 0
+            if not problem:
+                # call async method:
+                transfer_tasks.download.delay(passing_items, request.session['download_destination'])
+                context = {'email_enabled': settings.EMAIL_ENABLED, 
+                    'problem': problem, 
+                    'at_least_one_transfer':at_least_one_transfer
+                }
+                return render(request, 'transfer_app/download_started.html', context)
+            else:
+                # if there was a problem-- could not fit all files
+                # Still initiate the good transfers
+                if len(passing_items) > 0:
+                    transfer_tasks.download.delay(passing_items, request.session['download_destination'])
+                warning_list = []
+                for item in failed_items:
+                    resource_name = Resource.objects.get(pk=item['resource_pk']).name
+                    warning_list.append('Not enough space in your Google Drive for file %s' % resource_name)
+                context = {
+                    'email_enabled': settings.EMAIL_ENABLED,
+                    'problem': problem,
+                    'at_least_one_transfer':at_least_one_transfer,
+                    'warnings': warning_list
+                }
+                return render(request, 'transfer_app/download_started.html', context)
         else:
             raise MethodNotAllowed('Method not allowed.')
 
