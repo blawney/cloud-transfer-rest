@@ -102,7 +102,7 @@ def take_inputs():
     while not accepted:
         use_email = input('Will you be using email notifications? '
                           'You will still need to setup any credentials.  Instructions for Gmail integration '
-                          'are provided in the documentation.')
+                          'are provided in the documentation:  ')
         if use_email.lower()[0] == 'y':
             params['email_enabled'] = True
             accepted=True

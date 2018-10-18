@@ -8,6 +8,8 @@ cd $APP_ROOT
 
 # Fill out the general config and copy the templates
 # that do not need configuration
+printf "Enter some configuration parameters\n"
+printf "======================================\n\n\n"
 python3 helpers/fill_config_templates.py
 cd config
 cp downloaders.template.cfg downloaders.cfg 
@@ -36,6 +38,7 @@ supervisord --configuration /etc/supervisor/supervisord.conf
 supervisorctl reread && supervisorctl update
 
 # setup database:
+printf "Setup the database"
 python3 manage.py makemigrations
 python3 manage.py migrate
 
@@ -51,5 +54,7 @@ python3 manage.py collectstatic
 # Also needs to have run collectstatic prior
 python3 helpers/fill_javascript.py
 
-echo "Create a super user:"
+printf "\n\n\nCreate a super user:"
 python3 manage.py createsuperuser
+
+gunicorn cccb_transfers.wsgi:application --bind=unix:/host_mount/dev.sock
